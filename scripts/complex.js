@@ -71,7 +71,7 @@ for (let i = 0; i<PIXELS_W; i++){
         const c = new_complex_number(MIN_REAL + i * DELTA_REAL, MIN_IMAG + j*DELTA_IMAG);
         const iterations = iterate_mandelfunc_under_0(c);
 
-        ctx.fillStyle = iterations === MAX_ITERATIONS ? '#000000' :  `hsl(${iterations} 50% 50%)`;
+        ctx.fillStyle = iterations === MAX_ITERATIONS ? '#000000' :  `hsl(${100*iterations} ${50/(1 + iterations/MAX_ITERATIONS)}% ${50/(1 + iterations/MAX_ITERATIONS)}%)`;
         //console.log(iterations);
         ctx.fillRect(i, j, 1, 1);
     }
