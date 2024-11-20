@@ -13,4 +13,133 @@
     <header>
         <nav-bar></nav-bar>
     </header>
+
+    
+    <section class="main-content">
+            <p>
+                Here's a collection of things I've been working on. Most of these
+                are things I've worked on since finishing school, trying to learn
+                programming fundamentals.
+            </p>
+
+            <p>
+                This site is a bit of a project itself, trying to see what
+                basic HTML, CSS and vanilla Javascript can get you. <a
+                href="applets.html"> here </a> are some in-browser toys I've
+            thrown together that I wouldn't really consider their own
+            standalone projects. Read on for things that warrant their own
+            repo.
+            </p>
+
+
+        <div class="project-dropdown">
+            <details>
+                <summary>
+                    <h3 class="project-name" id="architecture-simulator"> RISC-V Interpreter and Computer
+                    Architecture Simulator </h3>
+                </summary>
+                <div class="project-description">
+                    <p>
+                        This was the final project for the computer architecture course I
+                        took in my last semester of school, which was really influential on
+                        me. I would link to the code if it wasn't going to be reused in 
+                        future semesters.
+                    </p>
+
+                    <p>
+                        The goal of the project was to write a program that simulated an
+                        out-of-order (OoO), speculative CPU with branch prediction and register
+                        renaming. The simulator would read in a configuration
+                        parameterizing the CPU, as well as a program describing the initial
+                        state of the CPU's memory and a program written in a subset of
+                        RISC-V assembly. Our simulator would interpret the program and
+                        output the execution time in number of cycles, as well as report
+                        bottlenecks in the execution pipeline, as measured by where it was
+                        necessary to stall processing.
+                    </p>
+                    
+                    <p>
+                        The real complication in the processor was the use of branch
+                        prediction along with OoO, speculative execution. Branch
+                        instructions in the program are assigned a branch predictor, a
+                        state machine describing if the branch is likely to be taken or
+                        not; it's possible that this prediction is incorrect.
+                    </p>
+
+                    <p>
+                        To increase performance, modern CPUs use pipelined, OoO
+                        execution. Pipelining is a form of parallelism achieved
+                        by having different processing steps occur
+                        simultaneously for different instructions. For example,
+                        in one cycle, an add instruction might be executing the
+                        addition operation while the next instruction is
+                        getting fetched. That way, the add unit on the CPU and
+                        the fetch unit are both utilized, instead of waiting
+                        for each other when their results are unrelated.
+                    </p>
+
+                    <p>
+                        OoO execution is another optimization that allows
+                        instructions to execute when their data is ready, as
+                        opposed to when it is their turn in program order. For
+                        example if you want to add a and b, but between their
+                        computation and the addition, you also compute c,
+                        out-of-order execution allows the processor to skip
+                        waiting on c.
+                    </p>
+
+                    <p>
+                        OoO execution and pipelining obviously introduce
+                        concerns about program correctness. These issues are
+                        called hazards, and come in three flavors: write after
+                        write (WAW), write after read (WAR), and read after
+                        write (RAW). A RAW hazard is a true data dependence; a
+                        register is written to, and then afterwards, a subsequent
+                        instruction reads the result. WAWs occur when two instructions
+                        write to the same register; if the writes occur out of order,
+                        thereafter, the register contains the wrong value. In the WAR 
+                        case, a write to a register occurs after a read; if these are
+                        out of order, the read value will premature read a value
+                        that should not yet have been there.
+                    </p>
+
+                    <p>
+                        These risks only exist because a register is at risk of
+                        being written to before it ought to be. This issue
+                        wouldn't exist if we had an infinitely large register
+                        file to use, and only wrote to a register once. This
+                        motivates the technique called register renaming.
+                        Whenever a register is going to be written to, the
+                        processor renames it. It keeps a mapping of real,
+                        physical registers to artificial registers it uses for
+                        renaming, as well as a free list of physical registers
+                        that don't contain a live value, still needing to be
+                        read in its current state. 
+                    </p>
+
+                    <p>
+                    </p>
+            </details>
+        </div>
+
+
+        <div class="project-dropdown">
+            <details>
+                <summary>
+                    <h3 class="project-name" id="miniclang"> Miniclang </h3>
+                </summary>
+                <div class = "project-description">
+                    <p>
+                        Miniclang is a C compiler I've been working on in an
+                        effort to learn LLVM and compilers in general. See the
+                        source and readme <a
+                        href="https://github.com/noahmbright/miniclang">here</a>
+                    for more details.
+                    </p>
+                </div>
+            </details>
+        </div>
+
+    <section>
+
 </body>

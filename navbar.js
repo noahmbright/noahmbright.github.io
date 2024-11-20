@@ -7,7 +7,6 @@ class NavBar extends HTMLElement{
             <ul>
                 <li><a href="index.html"> Home </a></li>
                 <li><a href="about.html"> About </a></li>
-                <li><a href="mandelbrot.html"> Mandelbrot </a></li>
                 <li><a href="projects.html"> Projects </a></li>
             </ul>
         </nav>

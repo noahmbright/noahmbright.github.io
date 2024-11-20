@@ -4,22 +4,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=devide-width, initial-scale=1">
-    <title> Noah </title>
+    <title> The Mandelbrot Set </title>
     <link rel="stylesheet" href="style.css">
+    <script defer src="navbar.js"></script>
 </head>
 
 <body>
-    <h1> asdf </h1>
+    <header>
+        <nav-bar></nav-bar>
+    </header>
 
-    <main>
-        Homepage
-    </main>
+    <section class="main-content">
+        <h1> The Mandelbrot Set </h1>
 
-    <canvas id="mandelbrotCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+        <div class="javascript-mandelbrot">
+            <h3> The Vanilla Javascript version </h3>
 
-    <div>
-        <script src ="scripts/complex.js"></script>
-    </div>
+            <p>
+                Here's a standard imperative implementation of the Mandelbrot
+                set. This was my first real experience doing much of anything
+                in JS. The Mandelbrot set iterates the function z_n(c) = z_{n-1}^2
+                + c until either a maximum number of iterations is hit, or the
+                magnitude of z_n exceeds 2. This implementation uses a closure
+                that returns this z_n(c) function for different values of c.
+                The canvas element below represents the complex plane. Dark pixels
+                represent choices of c where the maximum number of iterations is
+                hit, and we consider that point to be "in" the Mandelbrot set.
+                Colored points are colored by the number of iterations they take
+                to diverge. 
+            </p>
+
+            <canvas id="mandelbrotCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+
+            <div>
+                <script src ="scripts/complex.js"></script>
+            </div>
+
+            <p>
+                To get some more threading practice in JS, a good next step here
+                would be to use WebWorkers. That's in progress.
+            </p>
+
+        </div>
+
+        <div class="webgl-mandelbrot">
+            <h3> Using WebGL </h3>
+            
+            <p>
+                What's even more interesting to me than WebWorkers is WebGL. 
+                This section is still under construction, but this is going to 
+                be an implemention of the Mandelbrot set that does the iteration
+                on the GPU, and obviously also the rendering. Also in the works 
+                is the ability to zoom in and explore the set, where you can 
+                see the fractal nature of the set.
+            </p>
+
+            <canvas id="webgl-mandelcanvas" width="512", height="512" style="border:1px solid #000000;"></canvas>
+            <div>
+                <script src ="scripts/mandelbrot_webgl.js"></script>
+            </div>
+
+        </div>
+    </section>
 
 
 </body>

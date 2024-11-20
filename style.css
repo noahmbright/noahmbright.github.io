@@ -1,9 +1,16 @@
+*{
+    color: rgba(0,0,0, 0.7);
+    font-family: georgia, serif;
+}
+
 body{
     margin: 0px;
 }
 
-main{
-    margin:20px;
+.main-content {
+    margin-left: auto;
+    margin-right: auto;
+    width: 50%;
 }
 
 .navbar ul{
@@ -27,4 +34,18 @@ main{
 }
 .navbar li{
     float: left;
+}
+
+.content {
+    margin: 0 auto;
+    padding: 0 1.4em;
+
+}
+
+.project-name{
+    display: inline-block;
+    cursor: pointer;
+}
+
+.project-description{
 }
