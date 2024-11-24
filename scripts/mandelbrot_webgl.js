@@ -7,8 +7,9 @@ if (!gl){
 const mandel_canvas_width = webgl_mandelbrot_canvas.width;
 const mandel_canvas_height = webgl_mandelbrot_canvas.height;
 
-// need uniforms for min/max x/y, canvas w/h, max iterations
+// need uniforms for min/max x/y, canvas w/h
 const vertex_shader_source= `
+    precision mediump float;
 
     void main(){
     }
@@ -17,17 +18,20 @@ const vertex_shader_source= `
 const fragment_shader_source= `
     precision mediump float;
 
-    uniform vec2 u_complex_min;
-    uniform vec2 u_complex_max;
-    uniform vec2 u_resolution;
-    const int max_iterations = 100;
+    uniform int h_pixels;
+    uniform int w_pixels;
+    uniform vec2 complex_min;
+    uniform vec2 complex_max;
+
+    const int max_iterations = 20;
 
     int iterate(in float real, in float imag){
         float re = real;
         float im = imag;
         int iterations = 0;
 
-        for (int i = 0; i < max_iterations; i++){
+
+        for (int i = 0; i <= max_iterations; i++){
             if (re*re + im*im > 4.0){
                 break;
             }
@@ -43,16 +47,22 @@ const fragment_shader_source= `
 
     void main(){
 
-        float delta_real = u_complex_max.x - u_complex_min.x;
-        float delta_imag = u_complex_max.y - u_complex_min.y;
-        
-        int iterations = iterate(gl_FragCoord.x / u_resolution.x * delta_real + u_complex_min.x,
-                                 gl_FragCoord.y / u_resolution.y * delta_imag + u_complex_min.y);
+        float delta_real = complex_max.x - complex_min.x;
+        float delta_imag = complex_max.y - complex_min.y;
+      
+        float f_w = float(w_pixels);
+        float f_h = float(h_pixels);
+        int iterations = iterate(gl_FragCoord.x / f_w * delta_real + complex_min.x,
+                                 gl_FragCoord.y / f_h * delta_imag + complex_min.y);
+
+        float f_iterations = float(iterations);
+        float f_max_iterations = float(max_iterations);
+        float ratio = f_iterations/f_max_iterations;
 
         if (iterations == max_iterations){
-            gl_FragColor = vec4(0, 0, 0, 1);
+            gl_FragColor = vec4(0, 0, 0, 1.0);
         } else {
-            gl_FragColor = vec4(vec3(iterations/max_iterations), 1);
+            gl_FragColor = vec4(vec3(sqrt(ratio)), 1.0);
         }
     }
 `
@@ -100,28 +110,43 @@ var position_buffer = gl.createBuffer();
 gl.bindBuffer(gl.ARRAY_BUFFER, position_buffer);
 
 const mandel_num_pixels = mandel_canvas_width * mandel_canvas_height;
-var positions = Array(2 * mandel_num_pixels).fill(0);
+var positions = Array(2*mandel_num_pixels).fill(0);
+
+
 for(i = 0; i < mandel_num_pixels; i++){
-    positions[i]     = (i % mandel_canvas_width) * delta_real;
-    positions[2 * i] = (i / mandel_canvas_width) * delta_imag;
+    positions[i] =       ( i % mandel_canvas_width ) * 2.0/mandel_canvas_width - 1;
+    positions[2*i + 1] = ( i / mandel_canvas_width ) * 2.0/mandel_canvas_height - 1;
 }
 
 gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
 // todo: resize canvas
-gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-const resolutionLocation = gl.getUniformLocation(program, "u_resolution");
-gl.uniform2f(resolutionLocation, gl.canvas.width, gl.canvas.height);
 
-const complexMinCoords = gl.getUniformLocation(program, "u_complex_min");
+gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+const wPixelsLocation = gl.getUniformLocation(program, "w_pixels");
+gl.uniform1i(wPixelsLocation, gl.canvas.width);
+const hPixelsLocation = gl.getUniformLocation(program, "h_pixels");
+gl.uniform1i(hPixelsLocation, gl.canvas.height);
+
+const complexMinCoords = gl.getUniformLocation(program, "complex_min");
 gl.uniform2f(complexMinCoords, real_min, imag_min);
 
-const complexMaxCoords = gl.getUniformLocation(program, "u_complex_max");
+const complexMaxCoords = gl.getUniformLocation(program, "complex_max");
 gl.uniform2f(complexMaxCoords, real_max, imag_max);
 
+var positionAttributeLocation = gl.getAttribLocation(program, "a_pos");
+
 gl.clearColor(0.1, 0.0, 0.3, 0.3);
-gl.clear(gl.COLOR_BUFFER_BIT);
-gl.enableVertexAttribArray(position_attribute_location);
+gl.enableVertexAttribArray(positionAttributeLocation);
 gl.bindBuffer(gl.ARRAY_BUFFER, position_buffer);
-gl.vertexAttribPointer(position_attribute_location, 6, gl.FLOAT, false, 0, 0);
-gl.drawArrays(gl.TRIANGLES, 0, 3);
+gl.vertexAttribPointer(positionAttributeLocation, 2, gl.FLOAT, false, 0, 0);
+
+const fpsElement = document.querySelector("#fps");
+var then = 0;
+function render(now){
+    //gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawArrays(gl.POINTS, 0, mandel_num_pixels);
+
+    requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
