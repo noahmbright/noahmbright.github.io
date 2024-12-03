@@ -27,24 +27,29 @@ const mandel_fragment_shader_source= `
     uniform vec2 complex_max;
     uniform vec2 complex_delta;
 
-    const int max_iterations = 50;
+    const int max_iterations = 10000;
 
     int iterate(in float real, in float imag){
         float re = real;
         float im = imag;
-        int iterations = 0;
 
         for (int i = 0; i < max_iterations; i++){
-            if (re*re + im*im > 4.0){
+            float re2 = re*re;
+            float im2 = im*im;
+            if (re2 + im2 > 4.0){
                 return i;
             }
 
-            float temp = re * re - im * im + real;
+            float temp = re2 - im2 + real;
             im = 2.0 * re * im + imag;
             re = temp;
         }
 
-        return iterations;
+        return max_iterations;
+    }
+
+    vec3 pallete(in float t, in vec3 a, in vec3 b, in vec3 c, in vec3 d){
+        return a + b*cos(6.28 * (c*t + d));
     }
 
     void main(){
@@ -53,15 +58,18 @@ const mandel_fragment_shader_source= `
         int iterations = iterate(gl_FragCoord.x / f_w * complex_delta.x + complex_min.x,
                                  gl_FragCoord.y / f_h * complex_delta.y + complex_min.y);
 
-        float f_iterations = float(iterations);
-        float f_max_iterations = float(max_iterations);
-        float ratio = f_iterations/f_max_iterations;
+        float ratio = float(iterations)/float(max_iterations);
+
+        vec3 a = vec3(0.1);
+        vec3 b = vec3(0.75);
+        vec3 c = vec3(40);
+        vec3 d = vec3(0.1, 0.2, 0.05);
 
         if (iterations == max_iterations){
-            gl_FragColor = vec4(0, 0, 0, 1.0);
+            gl_FragColor = vec4(vec3(0.0), 1.0);
         }
         else {
-            gl_FragColor = vec4(vec3(sqrt(ratio)), 1.0);
+            gl_FragColor = vec4(pallete(float(ratio), a,b,c,d), 1.0);
         }
     }
 `
@@ -93,12 +101,16 @@ function createProgram(mandel_gl, vertex_shader, fragment_shader){
     mandel_gl.deleteProgram(program);
 }
 
-const real_min = -1.5;
-const real_max = 1.0;
-const imag_min = -1.25;
-const imag_max = 1.25;
-const delta_real = (real_max - real_min);
-const delta_imag = (imag_max - imag_min);
+const real_min0 = -1.5;
+const real_max0 = 1.0;
+const imag_min0 = -1.25;
+const imag_max0 = 1.25;
+let real_min = -1.5;
+let real_max = 1.0;
+let imag_min = -1.25;
+let imag_max = 1.25;
+let delta_real = (real_max - real_min);
+let delta_imag = (imag_max - imag_min);
 const mandel_num_pixels = mandel_canvas_width * mandel_canvas_height;
 
 var mandel_vertex_shader = createShader(mandel_gl, mandel_gl.VERTEX_SHADER, mandel_vertex_shader_source);
@@ -112,33 +124,28 @@ mandel_gl.uniform1i(wPixelsLocation, mandel_gl.canvas.width);
 const hPixelsLocation = mandel_gl.getUniformLocation(mandel_program, "h_pixels");
 mandel_gl.uniform1i(hPixelsLocation, mandel_gl.canvas.height);
 
-const complexMinCoords = mandel_gl.getUniformLocation(mandel_program, "complex_min");
-mandel_gl.uniform2f(complexMinCoords, real_min, imag_min);
-
-const complexMaxCoords = mandel_gl.getUniformLocation(mandel_program, "complex_max");
-mandel_gl.uniform2f(complexMaxCoords, real_max, imag_max);
-
 const complexDelta = mandel_gl.getUniformLocation(mandel_program, "complex_delta");
-mandel_gl.uniform2f(complexDelta, delta_real, delta_imag);
+
+const complexMinCoords = mandel_gl.getUniformLocation(mandel_program, "complex_min");
+const complexMaxCoords = mandel_gl.getUniformLocation(mandel_program, "complex_max");
+
+let mouseX;
+let mouseY;
+function mandel_set_mouse_position(e){
+    const rect = webgl_mandelbrot_canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = rect.height - e.clientY + rect.top - 1;
+}
+
+webgl_mandelbrot_canvas.addEventListener("mousemove", mandel_set_mouse_position);
 
 mandel_gl.clearColor(0.1, 0.0, 0.3, 0.3);
 
-
-const other_positions = [
-    -0.5, -0.5,
-    -0.5, 0.5,
-    0.5, 0.5
-    // second
-    //1.0/2, 1.0/2,
-    //1.0/2, -1.0/2,
-    //-1.0/2, -1.0/2
-]
 const mandel_positions = [
     -1.0, -1.0,
     -1.0, 1.0,
     1.0, 1.0,
-    // second
-    1.0, 1.0,
+    1.0, 1.0, // second
     1.0, -1.0,
     -1.0, -1.0
 ]
@@ -150,11 +157,34 @@ mandel_gl.bindBuffer(mandel_gl.ARRAY_BUFFER, mandel_pos_buffer);
 mandel_gl.bufferData(mandel_gl.ARRAY_BUFFER, new Float32Array(mandel_positions), mandel_gl.STATIC_DRAW);
 mandel_gl.vertexAttribPointer(mandel_positionAttributeLocation, 2, mandel_gl.FLOAT, false, 0, 0);
 
+const increment = 1e-2
+
 const fpsElement = document.querySelector("#fps");
 var then = 0;
 function render(now){
+    mandel_gl.uniform2f(complexMinCoords, real_min, imag_min);
+    mandel_gl.uniform2f(complexMaxCoords, real_max, imag_max);
+    mandel_gl.uniform2f(complexDelta, delta_real, delta_imag);
+
     mandel_gl.clear(mandel_gl.COLOR_BUFFER_BIT);
     mandel_gl.drawArrays(mandel_gl.TRIANGLES, 0, 6);
+
+    let mandel_x_percentage = mouseX/mandel_canvas_width;
+    let mandel_y_percentage = mouseY/mandel_canvas_height;
+
+    if (!Number.isNaN(mandel_x_percentage)){
+        real_min = real_min + mandel_x_percentage * delta_real * increment;
+        real_max = real_max - (1.0 - mandel_x_percentage) * delta_real * increment;
+        delta_real = real_max - real_min;
+    }
+
+
+    if (!Number.isNaN(mandel_y_percentage)){
+        imag_min = imag_min + mandel_y_percentage * delta_imag * increment;
+        imag_max = imag_max - (1.0 - mandel_y_percentage) * delta_imag * increment;
+        delta_imag = imag_max - imag_min;
+    }
+
 
     requestAnimationFrame(render);
 }
