@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title> The Game of Life </title>
+    <link rel="stylesheet" href="style.css">
+    <script defer src="navbar.js"></script>
+</head>
+
+<body>
+    <header>
+        <nav-bar></nav-bar>
+    </header>
+
+    <section class="main-content">
+        <h1> The Game of Life </h1>
+
+        <div class="game-of-life">
+            <p>
+                The Game of Life was devised by the mathematician John Conway.
+                The rules are simple. At a given moment in time, a cell is
+                either alive or dead. A cell interacts with its 8 neighbors at
+                every time step. If a live cell has fewer than two live
+                neighbors, it dies. If a live cell has two or three live
+                neighbors, it survives. If it has more than three, it dies. If
+                a dead cell has exactly three live neighbors, it comes alive.
+            </p>
+
+            <canvas id="gameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+
+            <button id="gameOfLifePause"> Run </button>
+            <button id="gameOfLifeReset"> Reset </button>
+
+            <div>
+                <script src ="scripts/game_of_life.js"></script>
+            </div>
+
+        </div>
+    </section>
+
+
+</body>
+
+</html>
+

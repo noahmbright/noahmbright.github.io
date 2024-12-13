@@ -84,7 +84,7 @@ function createShader(mandel_gl, type, source){
     }
 
     console.log(mandel_gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
+    mandel_gl.deleteShader(shader);
 }
 
 function createProgram(mandel_gl, vertex_shader, fragment_shader){
