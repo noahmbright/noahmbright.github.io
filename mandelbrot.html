@@ -7,6 +7,7 @@
     <title> The Mandelbrot Set </title>
     <link rel="stylesheet" href="style.css">
     <script defer src="navbar.js"></script>
+    <script type="text/javascript" src="scripts/webgl_utils.js"></script>
 </head>
 
 <body>
@@ -22,16 +23,18 @@
 
             <p>
                 Here's a standard imperative implementation of the Mandelbrot
-                set. This was my first real experience doing much of anything
-                in JS. The Mandelbrot set iterates the function z_n(c) = z_{n-1}^2
-                + c until either a maximum number of iterations is hit, or the
-                magnitude of z_n exceeds 2. This implementation uses a closure
-                that returns this z_n(c) function for different values of c.
-                The canvas element below represents the complex plane. Dark pixels
-                represent choices of c where the maximum number of iterations is
-                hit, and we consider that point to be "in" the Mandelbrot set.
-                Colored points are colored by the number of iterations they take
-                to diverge. 
+                set. This is the first thing I've programmed in JS. The
+                Mandelbrot set is produced by starting at 0, and iterating the
+                complex-valued function z_n(c) = z_{n-1}^2 + c until either a
+                maximum number of iterations is hit, or the magnitude of z_n
+                exceeds 2. Because JavaScript is an academic, funcational language,
+                this implementation uses a higher-order function that returns a
+                z_n(z) function for different values of c. The canvas element
+                below represents the complex plane. Dark pixels represent
+                choices of c where the maximum number of iterations is hit, and
+                we consider that point to be "in" the Mandelbrot set. Colored
+                points are colored by the number of iterations they take to
+                diverge. 
             </p>
 
             <canvas id="mandelbrotCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
@@ -40,29 +43,41 @@
                 <script src ="scripts/complex.js"></script>
             </div>
 
-            <p>
-                To get some more threading practice in JS, a good next step here
-                would be to use WebWorkers. That's in progress.
-            </p>
-
         </div>
 
         <div class="webgl-mandelbrot">
             <h3> Using WebGL </h3>
             
             <p>
-                What's even more interesting to me than WebWorkers is WebGL. 
-                This section is still under construction, but this is going to 
-                be an implemention of the Mandelbrot set that does the iteration
-                on the GPU, and obviously also the rendering. Also in the works 
-                is the ability to zoom in and explore the set, where you can 
-                see the fractal nature of the set.
+                Maybe one day I'll get around to enhancing the CPU JS version
+                above, but here is a simple WebGL explorer. Hover your mouse over
+                a section of the set to zoom in. The fragment shader gets uniforms
+                describing the canvas dimensions, as well as what subset of the
+                complex plane is currently in view. Using those and the fragment
+                coordinate, each pixel can be assigned a complex number, which is
+                used as c in the iteration process. That fragment can then be 
+                colored accordingly.
             </p>
 
-            <canvas id="webgl-mandelcanvas" width="512", height="512" style="border:1px solid #000000;"></canvas>
+            <p>
+                After reaching the point that the image becomes noticably pixelated,
+                the zooming slows and eventually reverses, until the full set is in 
+                view again. Then you can zoom in on another point.
+            </p>
+
+            <canvas id="webgl-mandelcanvas" width="512", height="512" 
+                style="border:1px solid #000000;"></canvas>
             <div>
                 <script src ="scripts/mandelbrot_webgl.js"></script>
             </div>
+
+            <p>
+                A good next step could be to implement a big decimal type to get
+                better resolution, because it currently hits the limits of a 
+                double's resolution relatively quickly. The coloring is also not 
+                particularly pretty at this point, but for a first attempt at 
+                shader art, I think I got what I wanted out of this little project.
+            </p>
 
         </div>
     </section>

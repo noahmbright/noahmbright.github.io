@@ -105,6 +105,8 @@ const real_min0 = -1.5;
 const real_max0 = 1.0;
 const imag_min0 = -1.25;
 const imag_max0 = 1.25;
+const delta_real0 = real_max0 - real_min0;
+const delta_imag0 = imag_max0 - imag_min0;
 let real_min = -1.5;
 let real_max = 1.0;
 let imag_min = -1.25;
@@ -157,11 +159,11 @@ mandel_gl.bindBuffer(mandel_gl.ARRAY_BUFFER, mandel_pos_buffer);
 mandel_gl.bufferData(mandel_gl.ARRAY_BUFFER, new Float32Array(mandel_positions), mandel_gl.STATIC_DRAW);
 mandel_gl.vertexAttribPointer(mandel_positionAttributeLocation, 2, mandel_gl.FLOAT, false, 0, 0);
 
-const increment = 1e-2
+const increment = 5.00e-3;
+let zooming_in = true;
 
-const fpsElement = document.querySelector("#fps");
-var then = 0;
-function render(now){
+const zoom_threshold = 1e-5;
+function render(){
     mandel_gl.uniform2f(complexMinCoords, real_min, imag_min);
     mandel_gl.uniform2f(complexMaxCoords, real_max, imag_max);
     mandel_gl.uniform2f(complexDelta, delta_real, delta_imag);
@@ -169,20 +171,46 @@ function render(now){
     mandel_gl.clear(mandel_gl.COLOR_BUFFER_BIT);
     mandel_gl.drawArrays(mandel_gl.TRIANGLES, 0, 6);
 
-    let mandel_x_percentage = mouseX/mandel_canvas_width;
-    let mandel_y_percentage = mouseY/mandel_canvas_height;
+    if (zooming_in){
+        const mandel_x_percentage = mouseX/mandel_canvas_width;
+        const mandel_y_percentage = mouseY/mandel_canvas_height;
+        const speed_multiplier = Math.atan(delta_imag/zoom_threshold);
 
-    if (!Number.isNaN(mandel_x_percentage)){
-        real_min = real_min + mandel_x_percentage * delta_real * increment;
-        real_max = real_max - (1.0 - mandel_x_percentage) * delta_real * increment;
-        delta_real = real_max - real_min;
+        if (!Number.isNaN(mandel_x_percentage)){
+            const real_speed = delta_real * increment * speed_multiplier;
+            real_min = real_min + mandel_x_percentage * real_speed;
+            real_max = real_max - (1.0 - mandel_x_percentage) * real_speed;
+            delta_real = real_max - real_min;
+        }
+
+
+        if (!Number.isNaN(mandel_y_percentage)){
+            const imag_speed = delta_imag * increment * speed_multiplier;
+            imag_min = imag_min + mandel_y_percentage * imag_speed;
+            imag_max = imag_max - (1.0 - mandel_y_percentage) * imag_speed;
+            delta_imag = imag_max - imag_min;
+        }
+        if (imag_max - imag_min < zoom_threshold + 1e-6){
+            zooming_in = false;
+        }
     }
 
+    if (!zooming_in){
+        // zoomed in a lot, ready to zoom out
+        // at this point real_min > real_min0, so real_min - real_min0 > 0
+        // want to subtract off from real_min to get it closer to real_min0
+        const speed= Math.atan(2*delta_imag/delta_imag0) * increment;
+        real_min = real_min - (real_min - real_min0) * speed;
+        real_max = real_max + (real_max0 - real_max) * speed;
+        delta_real = real_max - real_min;
 
-    if (!Number.isNaN(mandel_y_percentage)){
-        imag_min = imag_min + mandel_y_percentage * delta_imag * increment;
-        imag_max = imag_max - (1.0 - mandel_y_percentage) * delta_imag * increment;
+        imag_min = imag_min - (imag_min - imag_min0) * speed;
+        imag_max = imag_max + (imag_max0 - imag_max) * speed;
         delta_imag = imag_max - imag_min;
+
+        if (imag_max - imag_min > delta_imag0 - 1e-2){
+            zooming_in = true;
+        }
     }
 
 
