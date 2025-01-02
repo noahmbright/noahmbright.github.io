@@ -3,6 +3,7 @@ let canvas = document.querySelector("#pongCanvas");
 let gl = canvas.getContext("webgl");
 const pong_canvas_width = canvas.width;
 const pong_canvas_height = canvas.height;
+const aspect_ratio = canvas.width/canvas.height;
 gl.viewport(0, 0, pong_canvas_width, pong_canvas_height);
 
 let game_paused = true;
@@ -10,33 +11,34 @@ let between_rounds = true;
 
 let player_score = 0;
 let computer_score = 0;
-const puck_speed = 2e-2;
+const puck_speed = 3e-2;
 const rando = Math.random();
 const vx0 = puck_speed * Math.sin(Math.PI * rando);
 const vy0 = puck_speed * Math.cos(Math.PI * rando);
 const initial_x_offset = 0.1;
-const player_paddle_speed_magnitude = 2e-2;
-const computer_paddle_speed_magnitude = 2e-2;
-const prob_computer_chases_ball = .85;
+const player_paddle_speed_magnitude = 3e-2;
+const computer_paddle_speed_magnitude = 3e-2;
+const prob_computer_chases_ball = .95;
 
-let player_paddle_height = 0.4;
-let player_paddle_width = 0.05;
+let player_paddle_height = 0.2*aspect_ratio;
+let player_paddle_width = 0.025;
 let player_paddle_pos = {x: -1.0 + initial_x_offset, y: 0.0};
 let player_paddle_v = {vx: 0, vy: 0};
 
-let computer_paddle_height = 0.4;
-let computer_paddle_width = 0.05;
+let computer_paddle_height = 0.2*aspect_ratio;
+let computer_paddle_width = 0.025;
 let computer_paddle_pos = {
     x: 1.0 - initial_x_offset - computer_paddle_width,
     y: 0.0
 };
 let computer_paddle_v = {vx: 0, vy: 0};
 
-let ball_side_length = 0.1;
+let ball_width = 0.05;
+let ball_height = ball_width * aspect_ratio;
 let ball_pos = {x: 0.0, y: 0.0};
 let ball_v = {vx: 0, vy: 0};
-const ball_x0 = -ball_side_length/2;
-const ball_y0 = -ball_side_length/2;
+const ball_x0 = -ball_width/2;
+const ball_y0 = -ball_height/2;
 
 const vertex_shader_source = `
     attribute vec2 a_pos;
@@ -54,23 +56,23 @@ const fragment_shader_source = `
     }
 `;
 
-const vertex_shader = createShader(gl, gl.VERTEX_SHADER, vertex_shader_source);
-const fragment_shader = createShader(gl, gl.FRAGMENT_SHADER, fragment_shader_source);
-const program = createProgram(gl, vertex_shader, fragment_shader);
+const vertex_shader = create_shader(gl, gl.VERTEX_SHADER, vertex_shader_source);
+const fragment_shader = create_shader(gl, gl.FRAGMENT_SHADER, fragment_shader_source);
+const program = create_program(gl, vertex_shader, fragment_shader);
 gl.useProgram(program);
 
 // let position of the paddles and ball be their top left corners
 function paddle_collide(){
     
     const player_x_aligned = player_paddle_pos.x + player_paddle_width >= ball_pos.x
-                          && ball_pos.x + ball_side_length >= player_paddle_pos.x;
+                          && ball_pos.x + ball_width >= player_paddle_pos.x;
 
     const player_y_aligned = player_paddle_pos.y - player_paddle_height <= ball_pos.y
-                          && ball_pos.y - ball_side_length <= player_paddle_pos.y;
+                          && ball_pos.y - ball_height <= player_paddle_pos.y;
 
     if (player_x_aligned && player_y_aligned){
-        let fraction_in_y = ((player_paddle_pos.y + ball_side_length) - ball_pos.y)/
-                              (player_paddle_height + ball_side_length);
+        let fraction_in_y = ((player_paddle_pos.y + ball_height) - ball_pos.y)/
+                              (player_paddle_height + ball_height);
         if (fraction_in_y < 0.2){
             fraction_in_y = 0.2;
         }
@@ -84,14 +86,14 @@ function paddle_collide(){
     }
 
     const computer_x_aligned = computer_paddle_pos.x + computer_paddle_width >= ball_pos.x
-                          && ball_pos.x + ball_side_length >= computer_paddle_pos.x;
+                          && ball_pos.x + ball_width >= computer_paddle_pos.x;
 
     const computer_y_aligned = computer_paddle_pos.y - computer_paddle_height <= ball_pos.y
-                          && ball_pos.y - ball_side_length <= computer_paddle_pos.y;
+                          && ball_pos.y - ball_height <= computer_paddle_pos.y;
 
     if (computer_x_aligned && computer_y_aligned){
-        let fraction_in_y = ((computer_paddle_pos.y + ball_side_length) - ball_pos.y)/
-                              (computer_paddle_height + ball_side_length);
+        let fraction_in_y = ((computer_paddle_pos.y + ball_height) - ball_pos.y)/
+                              (computer_paddle_height + ball_height);
         if (fraction_in_y < 0.2){
             fraction_in_y = 0.2;
         }
@@ -107,7 +109,7 @@ function paddle_collide(){
 const player_score_button = document.getElementById("pongPlayerScore");
 const computer_score_button = document.getElementById("pongComputerScore");
 function wall_collide(){
-    if (ball_pos.y - ball_side_length <= -1.0 || ball_pos.y >= 1.0){
+    if (ball_pos.y - ball_height <= -1.0 || ball_pos.y >= 1.0){
         ball_v.vy = -ball_v.vy;
     }
 
@@ -121,7 +123,7 @@ function wall_collide(){
         between_rounds = true;
     }
 
-    if (ball_pos.x + ball_side_length >= 1.0){
+    if (ball_pos.x + ball_width >= 1.0){
         player_score++;
         player_score_button.innerHTML = "Player: " + player_score.toString();
         ball_pos.x = ball_x0;
@@ -253,7 +255,7 @@ function render(){
     prev_time = current_time;
     time_elapsed += dt;
 
-    make_quad(positions, 0 * 8, ball_pos.x, ball_pos.y, ball_side_length, ball_side_length);
+    make_quad(positions, 0 * 8, ball_pos.x, ball_pos.y, ball_width, ball_height);
     make_quad(positions, 1 * 8, player_paddle_pos.x, player_paddle_pos.y, player_paddle_width, player_paddle_height);
     make_quad(positions, 2 * 8, computer_paddle_pos.x, computer_paddle_pos.y, computer_paddle_width, computer_paddle_height);
 
@@ -263,7 +265,6 @@ function render(){
 
     const threshold = time_to_check - control_factor*(player_score - computer_score);
     if (time_elapsed > threshold){
-        console.log(threshold);
         update_computer_paddle_velocity();
         time_elapsed = 0;
     }
