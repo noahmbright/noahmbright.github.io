@@ -130,6 +130,16 @@ function multiply_matrix4d(left, right){
     return res;
 }
 
+// expect a 4x4 matrix and a 4 vector
+function matrix_vector_multiply4d(m, v){
+    return [
+        v[0] * m[0*4 + 0] + v[1] * m[0*4 + 1] + v[2] * m[0*4 + 2] + m[0*4 + 3],
+        v[0] * m[1*4 + 0] + v[1] * m[1*4 + 1] + v[2] * m[1*4 + 2] + m[1*4 + 3],
+        v[0] * m[2*4 + 0] + v[1] * m[2*4 + 1] + v[2] * m[2*4 + 2] + m[2*4 + 3],
+        v[0] * m[3*4 + 0] + v[1] * m[3*4 + 1] + v[2] * m[3*4 + 2] + m[3*4 + 3],
+    ]
+}
+
 function identity_matrix3d(){
     return [
         1, 0, 0,
@@ -225,6 +235,14 @@ function x_rotation_matrix4d(angle){
         0, 0, 0, 1,
     ];
 }
+
+function log_matrix4d(m){
+    console.log(`${m[0]}, ${m[1]}, ${m[2]}, ${m[3]}
+${m[4]}, ${m[5]}, ${m[6]}, ${m[7]}
+${m[8]}, ${m[9]}, ${m[10]}, ${m[11]}
+${m[12]}, ${m[13]}, ${m[14]}, ${m[15]}`);
+}
+
 // VECTORS
 function vector_norm2(v){
     return v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
@@ -236,7 +254,7 @@ function vector_norm(v){
 
 function normalized_vector(v){
     const norm = vector_norm(v);
-    return v[0]/norm + v[1]/norm + v[2]/norm;
+    return [v[0]/norm, v[1]/norm, v[2]/norm];
 }
 
 function add_vectors(v, u){
@@ -307,18 +325,83 @@ function look_at_matrix(position, focus, up){
     // forward points from camera to focus, up is given, right is forward cross up
     const forward = normalized_vector(subtract_vectors(focus, position));
     const right = normalized_vector(cross_product(forward, up));
-    const u = cross(right, forward);
-    
-    return [
-        right[0], right[1], right[2], -dot_product(position, right),
-        u[0], u[1], u[2], -dot_product(position, u), 
-        forward[0], forward[1], forward[2],-dot_product(position, forward),  
+    const u = cross_product(right, forward);
+    console.log(forward);
+    console.log(right);
+    console.log(u);
+
+    const m = [
+        right[0],   right[1],   right[2],   0, //-dot_product(position, right),
+        u[0],       u[1],       u[2],       0, //-dot_product(position, u), 
+        -forward[0], -forward[1], -forward[2], 0, //dot_product(position, forward),  
         0, 0, 0, 1
+    ];
+    return multiply_matrix4d(m, translation_matrix4d(-position[0], -position[1], -position[2]));
+}
+
+// expect fovy in degrees
+function perspective_projection(fovy, aspect_ratio, near, far){
+    const degree_to_rad = Math.acos(-1)/180;
+    const tan = Math.tan(fovy/2 * degree_to_rad);
+    const height = tan * near;
+    const right = aspect_ratio * height;
+
+    return [
+        near/right, 0, 0, 0,
+        0, near/height, 0, 0,
+        0, 0, (near+far)/(near-far), -1,
+        0, 0, (2*near*far)/(near-far), 0
     ];
 }
 
 // geometry primitives
-//
+
+// quad for sanity checking
+// bl, tl, tr, br
+function init_sample_quad(gl, program){
+    const sample_quad_vertices = [
+        -0.5, -0.5, 0.0,
+        -0.5, 0.5, 0.0,
+        0.5, 0.5, 0.0,
+        0.5, -0.5, 0.0
+    ];
+
+    const sample_quad_indices = [
+        0, 1, 2, 0, 2, 3
+    ];
+
+    const vao = gl.createVertexArray();
+    const vbo = gl.createBuffer();
+    const ebo = gl.createBuffer();
+
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(sample_quad_vertices), gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(sample_quad_indices), gl.STATIC_DRAW);
+
+    const position_attribute_location = gl.getAttribLocation(program, "a_position");
+    gl.enableVertexAttribArray(position_attribute_location);
+    gl.vertexAttribPointer(position_attribute_location,
+        3, gl.FLOAT, false, 3*Float32Array.BYTES_PER_ELEMENT, 0
+    );
+
+    return {
+        gl: gl,
+        program: program,
+        vao: vao,
+    }
+}
+
+function draw_sample_quad(square_info){
+    const gl = square_info.gl;
+    gl.useProgram(square_info.program);
+    gl.bindVertexArray(square_info.vao);
+    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+}
+
 // SPHERE
 // https://www.songho.ca/opengl/gl_sphere.html
 // azimuth is around z axis
@@ -449,6 +532,6 @@ function generate_sphere_info(radius, num_azimuthal_slices, num_zenith_slices, g
 function draw_sphere(sphere_info){
     sphere_info.gl.useProgram(sphere_info.program);
     sphere_info.gl.bindVertexArray(sphere_info.vao);
-    gl.drawElements(sphere_info.gl.TRIANGLES, sphere_info.num_indices, 
+    sphere_info.gl.drawElements(sphere_info.gl.TRIANGLES, sphere_info.num_indices, 
                     sphere_info.gl.UNSIGNED_SHORT, 0);
 }
