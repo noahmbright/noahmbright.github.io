@@ -7,6 +7,18 @@
     <title> The Game of Life </title>
     <link rel="stylesheet" href="style.css">
     <script defer src="navbar.js"></script>
+    <script type="text/javascript" src="scripts/webgl_utils.js"></script>
+    <style>
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+              -webkit-appearance: none;
+              margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield; /* For Firefox */
+        }
+    </style>
 </head>
 
 <body>
@@ -28,15 +40,49 @@
                 a dead cell has exactly three live neighbors, it comes alive.
             </p>
 
+            <p>
+                The default board contains a single glider. You can randomize
+                the board, or you can click a cell to switch it to/from alive
+                from/to dead.
+            </p>
+
             <canvas id="gameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
 
             <button id="gameOfLifePause"> Run </button>
             <button id="gameOfLifeReset"> Reset </button>
 
+            <p>
+                The randomize button will run through all the cells, 
+                turning them alive with a probability you can set with 
+                the input field. It defaults to 0.5.
+            <p>
+            <button id="gameOfLifeRandomize"> Randomize </button>
+            <input id="gameOfLifeRandomProb" type="number" placeholder="Random Probability"
+                min="0" max="1" style="width: 30px;"
+            >
+
             <div>
                 <script src ="scripts/game_of_life.js"></script>
             </div>
 
+            <p>
+                The program works by rendering back and forth between two
+                textures. Upon CPU updates, the board is buffered to the
+                currently active framebuffer. The value in the red channel of
+                the texture represents a cell's status. A good next step would
+                be to utilize the other 4 channels, and try to map each
+                quadrant of the board to a particular channel.
+            </p>
+                The fragment shader runs a 3x3 kernel over the board. The
+                perimeter of the kernel is all 1s, and there's an 9 in the
+                middle. The 1s count the number of surrounding alive cells,
+                and the 9 bumps that sum if the current cell is alive. The
+                9 is an idea I got from Inigo Quilez. Initially, I had nested
+                branches in the shader - one to check if the current cell was
+                alive or dead, and then nested update rules. This is correct,
+                but by inflating the sum for living cells, you can 
+                unambiguously map the convolution sum in a single level of 
+                branching.
         </div>
     </section>
 
