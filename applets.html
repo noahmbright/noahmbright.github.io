@@ -1,16 +1,16 @@
 <!DOCTYPE html>
-<!-- Fractals, game of life-->
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=devide-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title> Toys </title>
     <link rel="stylesheet" href="style.css">
     <script defer src="navbar.js"></script>
 </head>
 
 <body>
+    <!--<iframe id="background-iframe" src="background.html"></iframe>-->
 
     <header>
         <nav-bar></nav-bar>
@@ -19,16 +19,31 @@
     <section class="main-content">
         <h2> Some toys </h2>
         <ul>
-            <li> <a href="mandelbrot.html"> A Mandelbrot Set </a>
-                implementation. A first pass uses some Javascript functional
-                programming to make a static zoomed out version. The WebGL
-                implementation is in progress.
+            <li> A GPU implementation of <a href="game_of_life.html">
+                    Conway's Game of Life. </a> You can set the board as 
+                you like, and then that gets buffered to a texture. That
+                textured "image" is processed using a 3x3 kernel to determine
+                if what cells are alive or dead in the next iteration, and the
+                updated board is rendered to another texture, as well as to the
+                screen. Those two textures go back and forth for the rest of
+                the simulation.
             </li>
 
-            <li> <a href="game_of_life.html"> Conway's Game of Life </a>
-                WIP. I'm looking to make an implementation of the Game
-                of Life that runs on the GPU using some render to texture/
-                general purpose GPU type computations. 
+            <li> <a href="mandelbrot.html"> A Mandelbrot Set </a>
+                implementation. A first pass uses some functional programming
+                in vanilla JavaScript to get a correct Mandelbrot set up on a
+                canvas. With that complete, a real explorer is implemented in
+                WebGL using a fragment shader. This is both my first exposure
+                to JavaScript and to shader art, I guess.
+            </li>
+
+            <li> <a href="geometry.html"> Some simple geometry exercises. </a>
+                Here I record the results of some graphics fundamentals. In
+                JS, without libraries like GLM, I've put together my own 
+                linear algebra helpers, as well as GL and geometry helpers.
+                These are fundamentals, but not always necessarily easy. 
+                Knowing how the basics work deeply makes the flashier stuff
+                easier to understand.
             </li>
 
             <li> <a href="pong.html"> Pong Clone </a>
