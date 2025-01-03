@@ -47,30 +47,49 @@
                 the camera look at matrix and the projection matrix.
             </p>
 
+            <p>
+                In this demo, the camera is always focused on the origin. You can
+                adjust the background color, the position of the camera and sphere,
+                and some of the camera projection parameters to view the orbiting
+                light from different angles. The lighting is a simple Blinn-Phong
+                shader. 
+            </p>
+
             <canvas id="geometryCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
-            <div>
+            <div class="geometry-slider">
                 <label for="ballXSlider">Ball x: <span id="ballXValue">0</span></label>
                 <input type="range" id="ballXSlider" min="-10" max="10" value="0" step="0.01">
 
                 <label for="ballYSlider">Ball y: <span id="ballYValue">0</span></label>
                 <input type="range" id="ballYSlider" min="-10" max="10" value="0" step="0.01">
 
-                <label for="ballXSlider">Ball z: <span id="ballZValue">0</span></label>
+                <label for="ballZSlider">Ball z: <span id="ballZValue">0</span></label>
                 <input type="range" id="ballZSlider" min="-10" max="10" value="0" step="0.01">
             </div>
 
-            <div>
+            <div class="geometry-slider">
                 <label for="ballXScaleSlider">Ball x scale: <span id="ballXScaleValue">0</span></label>
                 <input type="range" id="ballXScaleSlider" min="0.1" max="10" value="0" step="0.1">
 
                 <label for="ballYScaleSlider">Ball y scale: <span id="ballYScaleValue">0</span></label>
                 <input type="range" id="ballYScaleSlider" min="0.1" max="10" value="0" step="0.1">
 
-                <label for="ballXScaleSlider">Ball z scale: <span id="ballZScaleValue">0</span></label>
+                <label for="ballZScaleSlider">Ball z scale: <span id="ballZScaleValue">0</span></label>
                 <input type="range" id="ballZScaleSlider" min="0.1" max="10" value="0" step="0.1">
             </div>
 
-            <div>
+            <div class="geometry-slider">
+                <label for="cameraXSlider">Camera x: <span id="cameraXValue">0</span></label>
+                <input type="range" id="cameraXSlider" min="-10" max="10" value="0" step="0.01">
+
+                <label for="cameraYSlider">Camera y: <span id="cameraYValue">0</span></label>
+                <input type="range" id="cameraYSlider" min="-10" max="10" value="0" step="0.01">
+
+                <label for="cameraZSlider">Camera z: <span id="cameraZValue">0</span></label>
+                <input type="range" id="cameraZSlider" min="-10" max="10" value="0" step="0.01">
+            </div>
+
+            <div class="geometry-slider">
                 <label for="cameraFovSlider">Y Fov: <span id="cameraFovValue">45</span></label>
                 <input type="range" id="cameraFovSlider" min="0" max="180" value="0" step="1">
 
@@ -79,6 +98,17 @@
 
                 <label for="cameraFarSlider">Far plane distance: <span id="cameraFarValue">100</span></label>
                 <input type="range" id="cameraFarSlider" min="0.1" max="100" value="0" step="0.1">
+            </div>
+
+            <div class="geometry-slider">
+                <label for="backgroundXSlider">Background R: <span id="backgroundXValue">0</span></label>
+                <input type="range" id="backgroundXSlider" min="0" max="1" value="0" step="0.01">
+
+                <label for="backgroundYSlider">Background G: <span id="backgroundYValue">0</span></label>
+                <input type="range" id="backgroundYSlider" min="0" max="1" value="0" step="0.01">
+
+                <label for="backgroundZSlider">Background B: <span id="backgroundZValue">0</span></label>
+                <input type="range" id="backgroundZSlider" min="0" max="1" value="0" step="0.01">
             </div>
 
             <div>
