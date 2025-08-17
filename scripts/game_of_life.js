@@ -1,19 +1,18 @@
-// TODO periodic/nonperiodic boundary conditions
 (function() {
-    const gl = get_webgl_context("#gameOfLifeCanvas", "webgl");
-    const canvas = document.querySelector("#gameOfLifeCanvas");
+    const webgl_canvas = document.querySelector("#gameOfLifeCanvas");
+    const gl = get_webgl_context(webgl_canvas, "webgl");
     const bytes_per_float = Float32Array.BYTES_PER_ELEMENT;
 
     // game of life
     let generation = 0;
     const pixels_per_cell = 8;
-    const gol_height = Math.floor(canvas.height/pixels_per_cell);
-    const gol_width = Math.floor(canvas.width/pixels_per_cell);
+    const gol_height = Math.floor(webgl_canvas.height/pixels_per_cell);
+    const gol_width = Math.floor(webgl_canvas.width/pixels_per_cell);
     const num_cells = gol_height * gol_width;
     const dx = 2.0/gol_width;
     const dy = 2.0/gol_height;
     let gol_board = new Array(4 * num_cells).fill(0);
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.viewport(0, 0, webgl_canvas.width, webgl_canvas.height);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
     let prev_time = Date.now();
@@ -103,12 +102,7 @@
 
             int sum = int(sum_vec.r);
 
-            if (sum == 3 || sum == 11 || sum == 12){
-                gl_FragColor = alive_color;
-            }
-            else {
-                gl_FragColor = dead_color;
-            }
+            gl_FragColor =  (sum == 3 || sum == 11 || sum == 12) ? alive_color : dead_color;
         }
     `
 
@@ -260,6 +254,7 @@
         gl.vertexAttribPointer(position_attribute_location, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.LINES, 0, 2 * (gol_height + gol_width));
     }
+
     gl.clearColor(0.1, 0.5, 0.2, 1.0);
     const pause_button = document.getElementById("gameOfLifePause");
     function pause(){
@@ -312,9 +307,9 @@
         buffer_board_to_texture();
     });
 
-    canvas.addEventListener('click', function(e) {
+    webgl_canvas.addEventListener('click', function(e) {
         if (!running){
-            const rect = canvas.getBoundingClientRect();
+            const rect = webgl_canvas.getBoundingClientRect();
             const mouse_x = e.clientX - rect.left;
             const mouse_y = rect.height - e.clientY + rect.top - 1;
 
@@ -348,6 +343,10 @@
     init_board();
 
     function render(){
+        current_time = Date.now();
+        dt = current_time - prev_time;
+        prev_time = current_time;
+
         gl.bindBuffer(gl.ARRAY_BUFFER, quads_buffer);
         gl.enableVertexAttribArray(position_attribute_location);
         gl.vertexAttribPointer(position_attribute_location, 2, gl.FLOAT, false, 4*bytes_per_float, 0);
@@ -362,9 +361,7 @@
         // render to framebuffers[0], which has textures[0] bound to it
         // next, render to framebuffers[1], sampling textures[0]
         if (running){
-            current_time = Date.now();
-            elapsed_time += current_time - prev_time;
-            prev_time = current_time;
+            elapsed_time += dt;
 
             if (elapsed_time > threshold){
                 elapsed_time -= threshold;
@@ -381,7 +378,7 @@
         }
 
         // render to canvas
-        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.viewport(0, 0, webgl_canvas.width, webgl_canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.useProgram(quads_program);
         gl.uniform1i(quads_board_location, 0);

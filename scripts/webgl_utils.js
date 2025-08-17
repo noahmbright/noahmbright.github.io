@@ -3,11 +3,10 @@ function resize_canvas_to_display_size(canvas){
     canvas.height = canvas.clientHeight;
 }
 
-function get_webgl_context(canvas_name, gl_type){
-    const canvas = document.querySelector(canvas_name);
+function get_webgl_context(canvas, gl_type){
     const gl = canvas.getContext(gl_type);
     if (!gl){
-        console.log("Couldn't get webgl context");
+        console.log(`Couldn't get ${gl_type} context`);
     }
     return gl;
 }
@@ -324,19 +323,19 @@ function dot_product(u, v){
 function look_at_matrix(position, focus, up){
     // forward points from camera to focus, up is given, right is forward cross up
     const forward = normalized_vector(subtract_vectors(focus, position));
-    const right = normalized_vector(cross_product(forward, up));
+    const right = normalized_vector(cross_product(forward, normalized_vector(up)));
     const u = cross_product(right, forward);
-    console.log(forward);
-    console.log(right);
-    console.log(u);
 
     const m = [
-        right[0],   right[1],   right[2],   0, //-dot_product(position, right),
-        u[0],       u[1],       u[2],       0, //-dot_product(position, u), 
-        -forward[0], -forward[1], -forward[2], 0, //dot_product(position, forward),  
-        0, 0, 0, 1
+        right[0],   right[1],   right[2],      0, 
+        u[0],       u[1],       u[2],          0, 
+        -forward[0], -forward[1], -forward[2], 0, 
+        -dot_product(position, right),
+        -dot_product(position, u), 
+        dot_product(position, forward),  
+        1,
     ];
-    return multiply_matrix4d(m, translation_matrix4d(-position[0], -position[1], -position[2]));
+    return m;
 }
 
 // expect fovy in degrees
@@ -535,3 +534,4 @@ function draw_sphere(sphere_info){
     sphere_info.gl.drawElements(sphere_info.gl.TRIANGLES, sphere_info.num_indices, 
                     sphere_info.gl.UNSIGNED_SHORT, 0);
 }
+

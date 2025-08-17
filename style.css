@@ -62,6 +62,11 @@ body{
     cursor: pointer;
 }
 
+.geometry-slider{
+    display: flex;
+    justify-content: space-between;
+}
+
 #backgroundCanvas{
     left: 0;
     top:0;
