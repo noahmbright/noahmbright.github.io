@@ -70,19 +70,14 @@
     const format = gl.RGBA;
     const type = gl.UNSIGNED_BYTE;
     for(let i = 0; i < 2; i++){
-        const texture = create_texture(gl);
-        textures.push(texture);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
+        textures.push(create_texture(gl));
         gl.texImage2D(gl.TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, type, null);
-
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         const fbo = gl.createFramebuffer(); 
         framebuffers.push(fbo);
         gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i], 0);
         if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE){
             console.log(`framebuffer ${i} incomplete`);
         }
@@ -457,8 +452,10 @@
             // j % 8 indicates which bit within a channel, what x section
             // j / 8 indicates which channel, which y section
             for(int j = 0; j < 32; j++){
+
                 int x = j % 8;
                 int y = (j / 8) % 4;
+
                 int sum = 0;
                 for(int i = 0; i < 9; i++){
                     int texel_dx = -1 + i % 3;
@@ -466,6 +463,7 @@
                     ivec2 tex_offset = ivec2(texel_dx, texel_dy);
                     sum += u_kernel[i] * extract_bit_from_texture(ivec2(x, y), tex_offset);
                 }
+
                 sample_int |= (((sum == 3 || sum == 11 || sum == 12) ? 1 : 0) << j);
             }
 

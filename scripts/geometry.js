@@ -1,7 +1,8 @@
 // TODO metal gear solid style vision cone
 // get active element with focused_element = document.activeElement;
 (function(){
-    gl = get_webgl_context("#geometryCanvas", "webgl2");
+    const canvas = document.querySelector("#geometryCanvas");
+    const gl = get_webgl_context(canvas, "webgl2");
     let aspect_ratio = gl.canvas.clientWidth / gl.canvas.clientHeight; 
 
     let focused_on_sphere = true;
