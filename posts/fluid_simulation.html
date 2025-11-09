@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title> Fluid Simulation </title>
+    <link rel="stylesheet" href="/style.css">
+    <script defer src="/navbar.js"></script>
+    <script type="text/javascript" src="/scripts/webgl_utils.js"></script>
+</head>
+
+<body>
+    <header>
+        <nav-bar></nav-bar>
+    </header>
+
+    <section class="main-content">
+        <h1> Fluid Simulation </h1>
+
+        <div class="fluid-simulation">
+            <p>
+                Following with the classic tutorial from Nvidia, start
+                with a simulation of an incompressible, homogenous fluid.
+
+                Homogeneity is the assumption of constant density in space.
+                Along with incompressibility, density is constant in both 
+                time and space.
+            </p>
+
+            <canvas id="fluidSimulationCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+
+            <div>
+                <script src ="/scripts/fluid_simulation.js"></script>
+            </div>
+
+        </div>
+    </section>
+
+
+</body>
+
+</html>
+

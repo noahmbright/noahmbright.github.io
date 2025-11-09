@@ -5,9 +5,9 @@ class NavBar extends HTMLElement{
         this.innerHTML = `
         <nav class="navbar">
             <ul>
-                <li><a href="index.html"> Home </a></li>
-                <li><a href="about.html"> About </a></li>
-                <li><a href="applets.html"> Toys </a></li>
+                <li><a href="/index.html"> Home </a></li>
+                <li><a href="/posts/about.html"> About </a></li>
+                <li><a href="/posts/applets.html"> Toys </a></li>
             </ul>
         </nav>
         `
