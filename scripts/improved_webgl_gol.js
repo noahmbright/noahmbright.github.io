@@ -72,6 +72,8 @@
     for(let i = 0; i < 2; i++){
         textures.push(create_texture(gl));
         gl.texImage2D(gl.TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, type, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); 
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
         const fbo = gl.createFramebuffer(); 
         framebuffers.push(fbo);
@@ -513,7 +515,7 @@
     draw_grid();
 
     let prev_time = Date.now();
-    const interval = 1000/10;
+    const interval = 1000/10; // 1000ms/ 10 = 1/10th of a second
     let elapsed_time = 0;
     function render(){
         const current_time = Date.now();

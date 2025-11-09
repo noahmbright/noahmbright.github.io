@@ -1,18 +1,18 @@
 (function() {
-    const webgl_canvas = document.querySelector("#gameOfLifeCanvas");
-    const gl = get_webgl_context(webgl_canvas, "webgl");
+    const canvas = document.querySelector("#gameOfLifeCanvas");
+    const gl = get_webgl_context(canvas, "webgl");
     const bytes_per_float = Float32Array.BYTES_PER_ELEMENT;
 
     // game of life
     let generation = 0;
     const pixels_per_cell = 8;
-    const gol_height = Math.floor(webgl_canvas.height/pixels_per_cell);
-    const gol_width = Math.floor(webgl_canvas.width/pixels_per_cell);
+    const gol_height = Math.floor(canvas.height/pixels_per_cell);
+    const gol_width = Math.floor(canvas.width/pixels_per_cell);
     const num_cells = gol_height * gol_width;
     const dx = 2.0/gol_width;
     const dy = 2.0/gol_height;
     let gol_board = new Array(4 * num_cells).fill(0);
-    gl.viewport(0, 0, webgl_canvas.width, webgl_canvas.height);
+    gl.viewport(0, 0, canvas.width, canvas.height);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
     let prev_time = Date.now();
@@ -46,12 +46,6 @@
         1, 1, 1
     ];
 
-    const main_fbo = gl.createFramebuffer();
-    const main_texture = create_texture(gl);
-    gl.bindTexture(gl.TEXTURE_2D, main_texture);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, main_fbo);
-    buffer_board_to_texture();
-
     framebuffers = [];
     textures = [];
     for (let i = 0; i<2; i++){
@@ -62,6 +56,9 @@
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[i]);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
                                 gl.TEXTURE_2D, textures[i], 0);
+        if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE){
+            console.log(`framebuffer ${i} incomplete`);
+        }
     }
 
     const gol_vertex_shader_source = `
@@ -102,7 +99,12 @@
 
             int sum = int(sum_vec.r);
 
-            gl_FragColor =  (sum == 3 || sum == 11 || sum == 12) ? alive_color : dead_color;
+            if (sum == 3 || sum == 11 || sum == 12){
+                gl_FragColor = alive_color;
+            }
+            else {
+                gl_FragColor = dead_color;
+            }
         }
     `
 
@@ -254,7 +256,6 @@
         gl.vertexAttribPointer(position_attribute_location, 2, gl.FLOAT, false, 0, 0);
         gl.drawArrays(gl.LINES, 0, 2 * (gol_height + gol_width));
     }
-
     gl.clearColor(0.1, 0.5, 0.2, 1.0);
     const pause_button = document.getElementById("gameOfLifePause");
     function pause(){
@@ -307,9 +308,9 @@
         buffer_board_to_texture();
     });
 
-    webgl_canvas.addEventListener('click', function(e) {
+    canvas.addEventListener('click', function(e) {
         if (!running){
-            const rect = webgl_canvas.getBoundingClientRect();
+            const rect = canvas.getBoundingClientRect();
             const mouse_x = e.clientX - rect.left;
             const mouse_y = rect.height - e.clientY + rect.top - 1;
 
@@ -329,12 +330,13 @@
     function init_board(){
         running = false;
         time_elapsed = 0;
-        iteration = 1;
+        iteration = 0;
         glider(5, gol_height - 5);
         pause_button.innerHTML = "Run";
 
         // this is what framebuffer we're going to render to
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[0]);
+
         // this is what texture we sample
         gl.bindTexture(gl.TEXTURE_2D, textures[1]);
         buffer_board_to_texture();
@@ -344,7 +346,7 @@
 
     function render(){
         current_time = Date.now();
-        dt = current_time - prev_time;
+        const dt = current_time - prev_time;
         prev_time = current_time;
 
         gl.bindBuffer(gl.ARRAY_BUFFER, quads_buffer);
@@ -362,23 +364,25 @@
         // next, render to framebuffers[1], sampling textures[0]
         if (running){
             elapsed_time += dt;
-
             if (elapsed_time > threshold){
                 elapsed_time -= threshold;
 
                 gl.viewport(0, 0, gol_width, gol_height);
                 gl.useProgram(gol_program);
                 gl.uniform1i(board_uniform_location, 0);
-                gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[iteration % 2]);
+
+                const i = iteration % 2;
+                const fbo = framebuffers[i];
+                gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
                 gl.drawElements(gl.TRIANGLES, 6 * num_cells, gl.UNSIGNED_SHORT, 0);
-                gl.bindTexture(gl.TEXTURE_2D, textures[iteration % 2]);
+                gl.bindTexture(gl.TEXTURE_2D, textures[i]);
                 iteration++;
             }
         }
 
         // render to canvas
-        gl.viewport(0, 0, webgl_canvas.width, webgl_canvas.height);
+        gl.viewport(0, 0, canvas.width, canvas.height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.useProgram(quads_program);
         gl.uniform1i(quads_board_location, 0);

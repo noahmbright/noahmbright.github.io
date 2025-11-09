@@ -46,6 +46,7 @@
                 from/to dead.
             </p>
 
+        <!--
             <canvas id="gameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
 
             <button id="gameOfLifePause"> Run </button>
@@ -70,7 +71,7 @@
                 textures. Upon CPU updates, the board is buffered to the
                 currently active framebuffer. The value in the red channel of
                 the texture represents a cell's status. A good next step would
-                be to utilize the other 4 channels, and try to map each
+                be to utilize the other 3 channels, and try to map each
                 quadrant of the board to a particular channel.
             </p>
             
@@ -90,42 +91,89 @@
                 to a branch free program on the GPU.
             </p>
         </div>
+        -->
 
-        <h1> WebGL, but no bits wasted </h1>
+        <h3> WebGL, with no bits wasted </h3>
 
         <div class="game-of-life">
-            <canvas id="improvedGameOfLifeCanvas" width="256" height="256" style="border:1px solid #000000;"></canvas>
+            <canvas id="improvedGameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
 
             <div>
                 <script src ="scripts/improved_webgl_gol.js"></script>
             </div>
+
             <p>
-                Like above, this is another WebGL implementation of GoL, but this one uses every single bit
-                inside that texture to do the simulation.
+                Like above, this is another WebGL implementation of GoL, but
+                this one uses every single bit inside that texture to do the
+                simulation.
+            </p>
+
+            <p>
+                This one similarly uses the ping-pong textures. The tricky part
+                here is figuring out how to use the extra 31 bits I'm wasting
+                in the previous implementation. You'll notice that the grid is
+                checkered turqoise and mustard in the background (byproducts of
+                the arbitrary colors and dye strength I put in my shader).
+                There are 4 rows and 8 columns in that checkerboard pattern.
+                The internal format for the texture I use for the ping-ponging
+                is RGBA8, meaning that the memory allocated on the GPU for the
+                texture is interpreted as 4, 8-bit channels. This checkerboard
+                corresponds to that layout. 
+            </p>
+
+            <p>
+                The simulation basically happens in a single one of these 32
+                sections. I can extract the height/width of the draw buffer of
+                the JS canvas. I can pick how many of those pixels I want to
+                correspond to a single GoL cell, and that sets the dimensions
+                of the simulation, and how finely I partition NDC screen-space
+                coords to ultimately render to the screen.
+            </p>
+
+            <p>
+                From the dimensions of the screen, I can divide by 4 and 8 to
+                get the dimensions of the textures I will work with -
+                "dimensions of the texture" is imprecise, in that the texture
+                still goes from 0.0 to 1.0, being a normal 2D sampler. But the
+                conceptual shift is that now I think of the texture as being
+                like a stack of 32 sections. When visualizing what exactly I
+                need to compute here, I think about a single one of these
+                sections, one 32nd of the board, and I consider the dimensions
+                of a single section as "dimensions of the texture" 
+            </p>
+
+            <p>
+                Now the game is to index into the texture and get the right
+                bit. I can provide the resolution of the board to my shaders via
+                a uniform, and then scale that down by (8, 4) to get the resolution
+                of a section. In a given shader invocation, I determine what happens
+                to "this cell" in the next iteration. I know where "this cell" is
+                through gl_FragCoord, which lets me map from pixels to GoL space.
+                I set the texture's wrapping mode to REPEAT, which lets me trivially
+                handle cases where I offset into a neighboring section. But it's
+                still necessary to handle changing the section itself when accounting
+                for the offset.
+            </p>
+
+            <p>
+                To perform the sum, I provide the 3x3 convolution kernel like the
+                first implementation, and do a simple for loop over an index from
+                0 to 9. That index mod 3 and integer divided by 3 gives you an x 
+                and y offset, and then you can just extract the bit from the texture
+                at the current cell plus that offset. That loop is nested inside a
+                another loop running over the 32 bits at that shader invocations
+                texture coordinates. Some bit shifting and OpenGL texture int/float
+                conversions finish the computation.
+            </p>
+
+            <p>
+                Finally, coloring the cells uses the same function to extract 
+                the bits of the texture, just invoked a single time at the current
+                cell, and if 1, it uses white as the alive color, and the
+                background color - mustard or turqoise - for the dead color.
             </p>
 
         </div>
-
-
-        <h1> WebGPU Implementation </h1>
-        <div>
-            <p>
-                WebGL is obviously capable of the ping-pong render-to-texture
-                technique for GPGPU, but it isn't exactly ergonomic. WebGPU
-                is another graphics API that offers compute shaders for the 
-                same purpose. 
-            </p>
-        </div>
-
-        <div>
-            <canvas id="webGPUGameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
-            <script type="module" src ="scripts/webgpu_game_of_life.js"></script>
-        </div>
-
-    </section>
-
-
-
 
 </body>
 
