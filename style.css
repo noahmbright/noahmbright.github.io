@@ -1,3 +1,14 @@
+/* https://coolors.co/palette/202c39-283845-b8b08d-f2d492-f29559 */
+:root {
+    --text: hsl(235, 21%, 21%);
+    --bg: hsl(218, 17%, 62%);
+    --lightgrey: hsl(197, 30%, 80%);
+    --lightred: hsl(353, 86%, 54%);
+    --darkred: hsl(350, 70%, 43%);
+    --nav: hsl(180, 50%, 30%);
+    --radius: 16px
+}
+
 *{
     color: rgba(0,0,0, 0.7);
     font-family: georgia, serif;
@@ -6,6 +17,7 @@
 p{
     width: 100%;
     justify-content: center;
+    color: var(--text);
 }
 
 canvas{
@@ -15,6 +27,7 @@ canvas{
 }
 
 body{
+    background-color: var(--bg);
     margin: 0px;
 }
 
@@ -29,9 +42,13 @@ body{
     z-index:1;
 }
 
+.main-content * {
+    color: var(--text);
+}
+
 .navbar ul{
     list-style-type :none;
-    background-color: hsl(180, 50%, 30%);
+    background-color: var(--nav);
     padding: 0px;
     margin: 0px;
     overflow: hidden;
@@ -46,8 +63,9 @@ body{
 }
 
 .navbar a:hover{
-    background-color: hsl(.2, 50%, 25%);
+    background-color: var(--darkred);
 }
+
 .navbar li{
     float: left;
 }
@@ -84,3 +102,11 @@ body{
     border:none;
     pointer-events: none;
 }
+
+pre, code {
+  background: var(--lightgrey);
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius);
+  font-family: monospace;
+}
+pre { padding: 1rem; overflow-x: auto; }
