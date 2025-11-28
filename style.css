@@ -85,6 +85,16 @@ body{
     justify-content: space-between;
 }
 
+.canvases-container{
+    display: flex;
+    justify-content: center;
+}
+
+.canvases-item{
+    text-align: center;
+}
+
+
 #backgroundCanvas{
     left: 0;
     top:0;

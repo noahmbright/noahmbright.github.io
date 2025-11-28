@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="/style.css">
     <script defer src="/navbar.js"></script>
     <script type="text/javascript" src="/scripts/webgl_utils.js"></script>
+    <script type="module" src="/scripts/mandelbrot_webgl.js"></script>
 </head>
 
 <body>
@@ -18,36 +19,65 @@
     <section class="main-content">
         <h1> The Mandelbrot Set </h1>
 
+        <p>
+
+            The Mandelbrot set is produced by creating a sequence of
+            complex numbers. The sequence is parametrized by an arbitrary
+            complex number c. The sequence always starts at z0 = 0. The
+            recursion relation for getting all subsequent numbers is z_{n
+            + 1} = z_n^2 + c. This sequence will tell us if c is in the
+            Mandelbrot set.
+
+            The magnitude of z_n as n tends to infinity will either be
+            bounded or unbounded. In principle, it's impossible to compute
+            this in finte time. Practically, in code we can pick an upper
+            bound on the number of iterations, and if we find that we
+            haven't diverged by then, we can estimate, at our level of
+            granularity, c is in the set.
+
+        </p>
+
         <div class="javascript-mandelbrot">
             <h3> The Vanilla Javascript version </h3>
 
             <p>
-                Here's a standard imperative implementation of the Mandelbrot
-                set. This is the first thing I've programmed in JS. The
-                Mandelbrot set is produced by starting at 0, and iterating the
-                complex-valued function z_n(c) = z_{n-1}^2 + c until either a
-                maximum number of iterations is hit, or the magnitude of z_n
-                exceeds 2. Because JavaScript is an academic, funcational language,
-                this implementation uses a higher-order function that returns a
-                z_n(z) function for different values of c. The canvas element
-                below represents the complex plane. Dark pixels represent
-                choices of c where the maximum number of iterations is hit, and
-                we consider that point to be "in" the Mandelbrot set. Colored
-                points are colored by the number of iterations they take to
-                diverge. 
+                This Mandelbrot set marks a milestone in my development as a
+                computer scientist. With it, I became a javascript programmer.
             </p>
 
-            <canvas id="mandelbrotCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+            <p>
 
-            <div>
-                <script src ="/scripts/complex.js"></script>
+                Because JavaScript is an academic, functional language, this
+                implementation uses a higher-order function that returns a
+                z_n(c) function for different values of c. The canvas element
+                below represents the complex plane. Dark pixels represent
+                choices of c where the maximum number of iterations is hit, and
+                we consider that point to be in the Mandelbrot set. Colored
+                points are colored by the number of iterations they take to
+                diverge. 
+
+                <pre><code>
+                    // code blocks just work
+                    VkBufferAllocateInfo info = {};
+                </code></pre>
+            </p>
+
+
+            <div class="canvases-container">
+                <div class="canvases-item">
+                    <canvas id="functionalCanvas" width="256" height="256" style="border:1px solid #000000;"></canvas>
+                    <p> Functional: <span  id="functional-fps">0.00</span> FPS</p>
+                </div>
+                <div class="canvases-item">
+                    <canvas id="imperativeCanvas" width="256" height="256" style="border:1px solid #000000;"></canvas>
+                    <p> Imperative: <span  id="imperative-fps">0.00</span> FPS</p>
+                </div>
             </div>
-
         </div>
 
         <div class="webgl-mandelbrot">
             <h3> Using WebGL </h3>
-            
+
             <p>
                 Maybe one day I'll get around to enhancing the CPU JS version
                 above, but here is a simple WebGL explorer. Hover your mouse over
@@ -67,9 +97,8 @@
 
             <canvas id="webgl-mandelcanvas" width="512", height="512" 
                 style="border:1px solid #000000;"></canvas>
-            <div>
-                <script src ="/scripts/mandelbrot_webgl.js"></script>
-            </div>
+            <p><span id="mandelbrot-fps">0.00</span> FPS</p>
+            <p><span id="mandelbrot-zoom"></span></p>
 
             <p>
                 A good next step could be to implement a big decimal type to get
@@ -78,12 +107,54 @@
                 particularly pretty at this point, but for a first attempt at 
                 shader art, I think I got what I wanted out of this little project.
             </p>
+        </div>
 
+        <div class="julia-sets">
+            <h3> Julia Sets </h3>
+            <p>
+
+                In the Mandelbrot set, we used the recursion relation z_{n + 1}
+                = z_n^2 + c, and varied c across the complex plane. For a given
+                c, we set z0 = 0 and iterated until we blew up or hit our limit
+                on iterations. This let us color the complex plane according to
+                whether or not c was in the Mandelbrot set.
+
+            </p>
+
+            <p>
+                A similar exercise is to fix c, and then vary z0 over the complex
+                plane. Then we color the plane according to how whether or not
+                the sequence blows up.
+            </p>
+
+            <div class="canvases-container">
+                <div class="canvases-item">
+                    <canvas id="julia-canvas" width="512", height="512" 
+                        style="border:1px solid #000000;"></canvas>
+                </div>
+
+                <div class="canvases-item" style="position: relative;">
+                    <canvas id="asdfbackgroundCanvas" width="256", height="256" 
+                        style="border:1px solid #000000; background-color: #af80af;
+                        position: absolute; top: 0; left: 0;"></canvas>
+
+                    <canvas id="julia-constant-picker-canvas" width="256", height="256" 
+                        style="border:1px solid #000000;
+                        position: absolute; top: 0; left: 0;"></canvas>
+
+                    <div>
+                        Real: <span id="julia-constant-real">0.00</span>, 
+                        Imaginary: <span id="julia-constant-imag">0.00</span>
+                    </div>
+                </div>
+            </div>
+
+        <div>
+            https://www.youtube.com/watch?v=FFftmWSzgmk
         </div>
     </section>
 
 
 </body>
-
 </html>
 
