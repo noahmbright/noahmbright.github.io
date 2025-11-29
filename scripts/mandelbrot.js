@@ -14,7 +14,7 @@ function update_fps(element, time, frames) {
 function new_config(name, iterator) {
     const canvas = document.getElementById(name + "Canvas");
     const ctx = canvas.getContext("2d");
-    const image_data = ctx.getImageData(0, 0, canvas.clientWidth, canvas.clientHeight);
+    const image_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     return {
         time: 0.0,
         canvas: canvas,
@@ -190,28 +190,29 @@ const vanilla_bounds = new_bounds()
 const functional_config = new_config("functional", functional_iterate);
 const imperative_config = new_config("imperative", imperative_iterate);
 
+
 function color_canvas(config, bounds) {
     const time0 = performance.now();
 
-    const delta_real = (bounds.real_max - bounds.real_min) / config.canvas.clientWidth;
-    const delta_imag = (bounds.imag_max - bounds.imag_min) / config.canvas.clientHeight;
-    let c_re = bounds.real_min;
+    const delta_real = (bounds.real_max - bounds.real_min) / config.canvas.width;
+    const delta_imag = (bounds.imag_max - bounds.imag_min) / config.canvas.height;
 
-    for (let i = 0; i < config.canvas.clientWidth; i++) {
-        let c_im = bounds.imag_min;
-        for (let j = config.canvas.clientHeight; j >= 0; j--) {
+    let c_im = bounds.imag_min;
+    for (let j = config.canvas.height; j >= 0; j--) {
+        let c_re = bounds.real_min;
+        for (let i = 0; i < config.canvas.width; i++) {
             const iterations = config.iterator(c_re, c_im);
 
-            const data_index = 4 * (j * config.canvas.clientWidth + i);
+            const data_index = 4 * (j * config.canvas.width + i);
             const palette_index = 3 * iterations;
             config.data[data_index + 0] = vanilla_palette[palette_index + 0];
             config.data[data_index + 1] = vanilla_palette[palette_index + 1];
             config.data[data_index + 2] = vanilla_palette[palette_index + 2];
             config.data[data_index + 3] = 255;
 
-            c_im += delta_imag;
+            c_re += delta_real;
         }
-        c_re += delta_real;
+        c_im += delta_imag;
     }
 
     config.ctx.putImageData(config.image_data, 0, 0);
@@ -257,7 +258,7 @@ const fragment_shader_header = `#version 300 es
 
     out vec4 frag_color;
 
-    const uint max_iterations = 5000u;
+    const uint max_iterations = 10000u;
 `
 
 const fragment_main = `
@@ -539,7 +540,7 @@ julia_constant_picker_canvas.addEventListener('click', (e) => {
 
 
 const background_bounds = new_bounds()
-const background_config = new_config("asdfbackground", imperative_iterate);
+const background_config = new_config("pickerBackground", imperative_iterate);
 color_canvas(background_config, background_bounds);
 
 // julia webgl

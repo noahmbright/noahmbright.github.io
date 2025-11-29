@@ -118,5 +118,10 @@ pre, code {
   padding: 0.2rem 0.4rem;
   border-radius: var(--radius);
   font-family: monospace;
+  line-height: 1.4;
 }
-pre { padding: 1rem; overflow-x: auto; }
+pre { 
+  padding: 1rem;
+  overflow-x: auto; 
+  overflow-y: visible;
+ }
