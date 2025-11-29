@@ -1,167 +1,165 @@
-(function(){
 
-    const canvas = document.querySelector("#improvedGameOfLifeCanvas");
-    const gl = get_webgl_context(canvas, "webgl2");
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(1.0, 0.0, 0.0, 1.0);
-    console.log(`Max texture size ${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`);
-    console.log(`Max vertices per call ${gl.getParameter(gl.MAX_ELEMENTS_VERTICES)}`);
-    const bytes_per_float = Float32Array.BYTES_PER_ELEMENT;
+const canvas = document.querySelector("#improvedGameOfLifeCanvas");
+const gl = get_webgl_context(canvas, "webgl2");
+gl.viewport(0, 0, canvas.width, canvas.height);
+gl.clearColor(1.0, 0.0, 0.0, 1.0);
+console.log(`Max texture size ${gl.getParameter(gl.MAX_TEXTURE_SIZE)}`);
+console.log(`Max vertices per call ${gl.getParameter(gl.MAX_ELEMENTS_VERTICES)}`);
+const bytes_per_float = Float32Array.BYTES_PER_ELEMENT;
 
-    /////////////////////////////////
-    // Game of Life game state
-    /////////////////////////////////
-    // pixels per square means the number of pixels in the JS canvas per cell in the gol sim
-    const pixels_per_square = 2;
-    const gol_width = Math.floor(canvas.width / pixels_per_square);
-    const gol_height = Math.floor(canvas.height / pixels_per_square);
-    const num_cells = gol_width * gol_height;
-    console.log(`gol_width: ${gol_width} gol_height: ${gol_height} num_cells: ${num_cells}`);
-    const u32_max = Math.pow(2, 32) - 1;
-    console.log(`num indices to draw (6 * num_cells): ${6 * num_cells}, 2^32 - 1 = ${u32_max}, ratio ${u32_max/(6 * num_cells)}`)
+/////////////////////////////////
+// Game of Life game state
+/////////////////////////////////
+// pixels per square means the number of pixels in the JS canvas per cell in the gol sim
+const pixels_per_square = 2;
+const gol_width = Math.floor(canvas.width / pixels_per_square);
+const gol_height = Math.floor(canvas.height / pixels_per_square);
+const num_cells = gol_width * gol_height;
+console.log(`gol_width: ${gol_width} gol_height: ${gol_height} num_cells: ${num_cells}`);
+const u32_max = Math.pow(2, 32) - 1;
+console.log(`num indices to draw (6 * num_cells): ${6 * num_cells}, 2^32 - 1 = ${u32_max}, ratio ${u32_max / (6 * num_cells)}`)
 
-    const x_sections = 8;
-    const y_sections = 4;
-    const dx = 2.0 / gol_width; // gl screen space
-    const dy = 2.0 / gol_height;
-    const x_cells_per_section = gol_width / x_sections;
-    const y_cells_per_section = gol_height / y_sections;
-    const cells_per_section = x_cells_per_section * y_cells_per_section;
-    // the texture width/height are just the number of cells per section
-    // the simulation basically just happens in a single section of the grid
-    // but since a single 4 bit int has 32 bits, we can simulate 32 sections at once
-    const texture_width = x_cells_per_section;
-    const texture_height = y_cells_per_section;
-    const tex_dx = 1.0 / x_cells_per_section;
-    const tex_dy = 1.0 / y_cells_per_section;
-    console.log(`x_cells_per_section: ${x_cells_per_section} y_cells_per_section: ${y_cells_per_section}`);
-    console.log(`texture_width: ${texture_width} texture_height: ${texture_height} texture bits: ${texture_width * texture_height * 32}`);
+const x_sections = 8;
+const y_sections = 4;
+const dx = 2.0 / gol_width; // gl screen space
+const dy = 2.0 / gol_height;
+const x_cells_per_section = gol_width / x_sections;
+const y_cells_per_section = gol_height / y_sections;
+const cells_per_section = x_cells_per_section * y_cells_per_section;
+// the texture width/height are just the number of cells per section
+// the simulation basically just happens in a single section of the grid
+// but since a single 4 bit int has 32 bits, we can simulate 32 sections at once
+const texture_width = x_cells_per_section;
+const texture_height = y_cells_per_section;
+const tex_dx = 1.0 / x_cells_per_section;
+const tex_dy = 1.0 / y_cells_per_section;
+console.log(`x_cells_per_section: ${x_cells_per_section} y_cells_per_section: ${y_cells_per_section}`);
+console.log(`texture_width: ${texture_width} texture_height: ${texture_height} texture bits: ${texture_width * texture_height * 32}`);
 
-    let generation = 0;
+let generation = 0;
 
-    // the very first 32 bits in the array/texture correspond to
-    // the bottom left corners of each section, the next 32 
-    // correspond to the bottom row second column, so on and so forth
-    // the integer to modify corresponds to the offset within the section
-    // the bit to modify depends on the section
-    let gol_board = new Uint32Array(num_cells/32).fill(0);
-    console.log(`gol_board length: ${gol_board.length} gol_board bits: ${gol_board.length * 32}`)
+// the very first 32 bits in the array/texture correspond to
+// the bottom left corners of each section, the next 32 
+// correspond to the bottom row second column, so on and so forth
+// the integer to modify corresponds to the offset within the section
+// the bit to modify depends on the section
+let gol_board = new Uint32Array(num_cells / 32).fill(0);
+console.log(`gol_board length: ${gol_board.length} gol_board bits: ${gol_board.length * 32}`)
 
-    const gol_kernel = new Int32Array([
-        1, 1, 1,
-        1, 9, 1,
-        1, 1, 1
-    ]);
+const gol_kernel = new Int32Array([
+    1, 1, 1,
+    1, 9, 1,
+    1, 1, 1
+]);
 
-    /////////////////////////////////
-    // Textures and framebuffers
-    /////////////////////////////////
+/////////////////////////////////
+// Textures and framebuffers
+/////////////////////////////////
 
-    // textures are RGBA8, so layout on GPU is
-    // RRRRRRRR GGGGGGGG BBBBBBBB AAAAAAAA
-    // index the y sections by channel, RGBA
-    // index the x sections by bit
-    // e.g. y = 2, x = 4 bit would be accessed by tex.b && (1 << 4)
-    // y in [0, 3], x in [0, 7]
-    // texture coordinates choose which 32 bit RGBA value to sample
-    textures = [];
-    framebuffers = [];
-    const internal_format = gl.RGBA8;
-    const format = gl.RGBA;
-    const type = gl.UNSIGNED_BYTE;
-    for(let i = 0; i < 2; i++){
-        textures.push(create_texture(gl));
-        gl.texImage2D(gl.TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, type, null);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); 
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+// textures are RGBA8, so layout on GPU is
+// RRRRRRRR GGGGGGGG BBBBBBBB AAAAAAAA
+// index the y sections by channel, RGBA
+// index the x sections by bit
+// e.g. y = 2, x = 4 bit would be accessed by tex.b && (1 << 4)
+// y in [0, 3], x in [0, 7]
+// texture coordinates choose which 32 bit RGBA value to sample
+const textures = [];
+const framebuffers = [];
+const internal_format = gl.RGBA8;
+const format = gl.RGBA;
+const type = gl.UNSIGNED_BYTE;
+for (let i = 0; i < 2; i++) {
+    textures.push(create_texture(gl));
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal_format, texture_width, texture_height, 0, format, type, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
-        const fbo = gl.createFramebuffer(); 
-        framebuffers.push(fbo);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    const fbo = gl.createFramebuffer();
+    framebuffers.push(fbo);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
 
-        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i], 0);
-        if(gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE){
-            console.log(`framebuffer ${i} incomplete`);
-        }
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, textures[i], 0);
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) != gl.FRAMEBUFFER_COMPLETE) {
+        console.log(`framebuffer ${i} incomplete`);
     }
+}
 
-    // x, y are the coordinates of the cell on the board, independent of sectioning
-    function set_cell(x, y){
-        // in JS array version of board, need to pack bits
-        let offset = 0;
-        const x_section = Math.floor(x/x_cells_per_section);
-        const y_section = Math.floor(y/y_cells_per_section);
-        const x_offset = x % x_cells_per_section;
-        const y_offset = y % y_cells_per_section;
-        const gol_board_index = y_offset * x_cells_per_section + x_offset;
-        offset += y_section * 8;
-        offset += x_section;
+// x, y are the coordinates of the cell on the board, independent of sectioning
+function set_cell(x, y) {
+    // in JS array version of board, need to pack bits
+    let offset = 0;
+    const x_section = Math.floor(x / x_cells_per_section);
+    const y_section = Math.floor(y / y_cells_per_section);
+    const x_offset = x % x_cells_per_section;
+    const y_offset = y % y_cells_per_section;
+    const gol_board_index = y_offset * x_cells_per_section + x_offset;
+    offset += y_section * 8;
+    offset += x_section;
 
-        gol_board[gol_board_index] |= (1 << offset);
-    }
+    gol_board[gol_board_index] |= (1 << offset);
+}
 
-    const threshold = 0.5;
-    function randomize_board(){
-        for(let i = 0; i < num_cells/32; i++){
-            for(let j = 0; j < 32; j++){
-                const x = Math.random();
-                if (x < threshold){
-                    gol_board[i] |= 1 << j;
-                }
-                else{
-                    gol_board[i] &= (~(1 << j));
-                }
+const threshold = 0.5;
+function randomize_board() {
+    for (let i = 0; i < num_cells / 32; i++) {
+        for (let j = 0; j < 32; j++) {
+            const x = Math.random();
+            if (x < threshold) {
+                gol_board[i] |= 1 << j;
+            }
+            else {
+                gol_board[i] &= (~(1 << j));
             }
         }
     }
+}
 
-    function buffer_board_to_texture(){
-        gl.texImage2D(gl.TEXTURE_2D, 0, internal_format,
-                texture_width, texture_height, 0,
-                format, type, new Uint8Array(gol_board.buffer)
-        );
-    }
+function buffer_board_to_texture() {
+    gl.texImage2D(gl.TEXTURE_2D, 0, internal_format,
+        texture_width, texture_height, 0,
+        format, type, new Uint8Array(gol_board.buffer)
+    );
+}
 
-    // initial state: bound texture is textures[1]
-    // calling buffer_board_to_texture buffers the board to textures[1]
-    // in our first gol step, we'll want to render to framebuffers[0]/textures[0],
-    // and afterward, bind textures[0] for the next sample
-    randomize_board();
-    buffer_board_to_texture();
-    const w = texture_width;
-    const h = texture_height;
-    const pixel_data = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixel_data);
-    console.log(pixel_data);
+// initial state: bound texture is textures[1]
+// calling buffer_board_to_texture buffers the board to textures[1]
+// in our first gol step, we'll want to render to framebuffers[0]/textures[0],
+// and afterward, bind textures[0] for the next sample
+randomize_board();
+buffer_board_to_texture();
+const w = texture_width;
+const h = texture_height;
+const pixel_data = new Uint8Array(w * h * 4);
+gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixel_data);
 
-    /////////////////////////////////
-    // Draw gridlines
-    /////////////////////////////////
+/////////////////////////////////
+// Draw gridlines
+/////////////////////////////////
 
-    // to draw a straight line, we need a start and an endpoint
-    // in 2D, each point needs an x and y
-    // for a straight line of constant y spanning the whole
-    // screen, the coords are
-    // (x_min, y) and (x_max, y)
-    // in opengl screenspace, x_max/x_min are +/-1.0
-    let gridline_vertices = [];
+// to draw a straight line, we need a start and an endpoint
+// in 2D, each point needs an x and y
+// for a straight line of constant y spanning the whole
+// screen, the coords are
+// (x_min, y) and (x_max, y)
+// in opengl screenspace, x_max/x_min are +/-1.0
+let gridline_vertices = [];
 
-    // lines of constant x with y = +/- 1.0
-    for(let x = -1.0; x < 1.0; x += dx){
-        gridline_vertices.push(x);
-        gridline_vertices.push(-1.0);
-        gridline_vertices.push(x);
-        gridline_vertices.push(1.0);
-    }
+// lines of constant x with y = +/- 1.0
+for (let x = -1.0; x < 1.0; x += dx) {
+    gridline_vertices.push(x);
+    gridline_vertices.push(-1.0);
+    gridline_vertices.push(x);
+    gridline_vertices.push(1.0);
+}
 
-    for(let y = -1.0; y < 1.0; y += dy){
-        gridline_vertices.push(-1.0);
-        gridline_vertices.push(y);
-        gridline_vertices.push(1.0);
-        gridline_vertices.push(y);
-    }
+for (let y = -1.0; y < 1.0; y += dy) {
+    gridline_vertices.push(-1.0);
+    gridline_vertices.push(y);
+    gridline_vertices.push(1.0);
+    gridline_vertices.push(y);
+}
 
-    const lines_vertex_source = `#version 300 es
+const lines_vertex_source = `#version 300 es
         in vec2 a_pos;
 
         void main(){
@@ -169,7 +167,7 @@
         }
     `
 
-    const lines_fragment_source = `#version 300 es
+const lines_fragment_source = `#version 300 es
         precision mediump float;
         out vec4 fragColor;
 
@@ -178,95 +176,95 @@
         }
     `
 
-    const lines_program = create_and_link_shaders(gl, lines_vertex_source, lines_fragment_source);
-    gl.useProgram(lines_program);
-    const lines_position_attribute_location = gl.getAttribLocation(lines_program, "a_pos");
+const lines_program = create_and_link_shaders(gl, lines_vertex_source, lines_fragment_source);
+gl.useProgram(lines_program);
+const lines_position_attribute_location = gl.getAttribLocation(lines_program, "a_pos");
 
-    const lines_vao = gl.createVertexArray();
-    gl.bindVertexArray(lines_vao);
+const lines_vao = gl.createVertexArray();
+gl.bindVertexArray(lines_vao);
 
-    const lines_vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, lines_vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gridline_vertices), gl.STATIC_DRAW);
+const lines_vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, lines_vbo);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(gridline_vertices), gl.STATIC_DRAW);
 
-    gl.enableVertexAttribArray(lines_position_attribute_location);
-    gl.vertexAttribPointer(lines_position_attribute_location,
-        2, gl.FLOAT, false, 2*bytes_per_float, 0
-    );
+gl.enableVertexAttribArray(lines_position_attribute_location);
+gl.vertexAttribPointer(lines_position_attribute_location,
+    2, gl.FLOAT, false, 2 * bytes_per_float, 0
+);
 
-    /////////////////////////////////
-    // draw cells
-    /////////////////////////////////
+/////////////////////////////////
+// draw cells
+/////////////////////////////////
 
-    // organize vertices from bottom to top, left to right
-    // render pixels using indices, order vertices BL, TL, TR, BR
-    // pixels in the bottom left quadrants will use the texture's 
-    // r channel, bottom right g, top left b, top right alpha
-    // divide the board into its 4 quadrants
-    // the e.g., bottom left cell in each quadrant will have the same
-    // texture coordinates, the "bottom left" of the texture
-    let grid_positions_array = new Float32Array(num_cells * 2 * 4);
-    let grid_tex_coords_array = new Float32Array(num_cells * 2 * 4);
+// organize vertices from bottom to top, left to right
+// render pixels using indices, order vertices BL, TL, TR, BR
+// pixels in the bottom left quadrants will use the texture's 
+// r channel, bottom right g, top left b, top right alpha
+// divide the board into its 4 quadrants
+// the e.g., bottom left cell in each quadrant will have the same
+// texture coordinates, the "bottom left" of the texture
+let grid_positions_array = new Float32Array(num_cells * 2 * 4);
+let grid_tex_coords_array = new Float32Array(num_cells * 2 * 4);
 
-    for(let y_ind = 0; y_ind < gol_height; y_ind++){
-        const screen_y = -1.0 + y_ind * dy;
-        const quadrant_y_offset = y_ind % y_cells_per_section;
-        const tex_y = quadrant_y_offset * tex_dy;
-        let i = y_ind * gol_width * 8;
+for (let y_ind = 0; y_ind < gol_height; y_ind++) {
+    const screen_y = -1.0 + y_ind * dy;
+    const quadrant_y_offset = y_ind % y_cells_per_section;
+    const tex_y = quadrant_y_offset * tex_dy;
+    let i = y_ind * gol_width * 8;
 
-        for(let x_ind = 0; x_ind < gol_width; x_ind++){
-            const screen_x = -1.0 + x_ind * dx;
-            const quadrant_x_offset = x_ind % x_cells_per_section;
-            const tex_x = quadrant_x_offset * tex_dx;
+    for (let x_ind = 0; x_ind < gol_width; x_ind++) {
+        const screen_x = -1.0 + x_ind * dx;
+        const quadrant_x_offset = x_ind % x_cells_per_section;
+        const tex_x = quadrant_x_offset * tex_dx;
 
-            // bottom left
-            // positions
-            grid_positions_array[i] = screen_x;
-            grid_positions_array[i + 1] = screen_y;
-            grid_tex_coords_array[i] = tex_x;
-            grid_tex_coords_array[i + 1] = tex_y;
+        // bottom left
+        // positions
+        grid_positions_array[i] = screen_x;
+        grid_positions_array[i + 1] = screen_y;
+        grid_tex_coords_array[i] = tex_x;
+        grid_tex_coords_array[i + 1] = tex_y;
 
-            // top le;
-            grid_positions_array[i + 2] = screen_x;
-            grid_positions_array[i + 3] = screen_y + dy;
-            grid_tex_coords_array[i + 2] = tex_x;
-            grid_tex_coords_array[i + 3] = tex_y + tex_dy;
+        // top le;
+        grid_positions_array[i + 2] = screen_x;
+        grid_positions_array[i + 3] = screen_y + dy;
+        grid_tex_coords_array[i + 2] = tex_x;
+        grid_tex_coords_array[i + 3] = tex_y + tex_dy;
 
-            // top right
-            grid_positions_array[i + 4] = screen_x + dx;
-            grid_positions_array[i + 5] = screen_y + dy;
-            grid_tex_coords_array[i + 4] = tex_x + tex_dx;
-            grid_tex_coords_array[i + 5] = tex_y + tex_dy;
+        // top right
+        grid_positions_array[i + 4] = screen_x + dx;
+        grid_positions_array[i + 5] = screen_y + dy;
+        grid_tex_coords_array[i + 4] = tex_x + tex_dx;
+        grid_tex_coords_array[i + 5] = tex_y + tex_dy;
 
-            // bottom right
-            grid_positions_array[i + 6] = screen_x + dx;
-            grid_positions_array[i + 7] = screen_y;
-            grid_tex_coords_array[i + 6] = tex_x + tex_dx;
-            grid_tex_coords_array[i + 7] = tex_y;
+        // bottom right
+        grid_positions_array[i + 6] = screen_x + dx;
+        grid_positions_array[i + 7] = screen_y;
+        grid_tex_coords_array[i + 6] = tex_x + tex_dx;
+        grid_tex_coords_array[i + 7] = tex_y;
 
-            i += 8;
-        }
+        i += 8;
     }
+}
 
-    let grid_indices = new Uint32Array(num_cells * 6);
-    for(let i = 0; i < num_cells; i++){
-        grid_indices[6 * i + 0] = 4 * i + 0;
-        grid_indices[6 * i + 1] = 4 * i + 1;
-        grid_indices[6 * i + 2] = 4 * i + 2;
-        grid_indices[6 * i + 3] = 4 * i + 0;
-        grid_indices[6 * i + 4] = 4 * i + 2;
-        grid_indices[6 * i + 5] = 4 * i + 3;
-    }
+let grid_indices = new Uint32Array(num_cells * 6);
+for (let i = 0; i < num_cells; i++) {
+    grid_indices[6 * i + 0] = 4 * i + 0;
+    grid_indices[6 * i + 1] = 4 * i + 1;
+    grid_indices[6 * i + 2] = 4 * i + 2;
+    grid_indices[6 * i + 3] = 4 * i + 0;
+    grid_indices[6 * i + 4] = 4 * i + 2;
+    grid_indices[6 * i + 5] = 4 * i + 3;
+}
 
-    // both the grid rendering and the gol steps use their texture coordinates to sample the texture
-    // the texture coordinates determine what cell within the section is sampled
-    // the bit/channel within that texture sample determines which x/y section is sampled
-    //
-    // which bits/locations on the screen are written to is determined by the gl_Position set
-    // in the vertex shaders, which is different in the gol step and rendering to the screen
-    //
-    // 
-    const texture_extraction_functions = `
+// both the grid rendering and the gol steps use their texture coordinates to sample the texture
+// the texture coordinates determine what cell within the section is sampled
+// the bit/channel within that texture sample determines which x/y section is sampled
+//
+// which bits/locations on the screen are written to is determined by the gl_Position set
+// in the vertex shaders, which is different in the gol step and rendering to the screen
+//
+// 
+const texture_extraction_functions = `
         uniform ivec3 u_grid_resolution; // gol_width, gol_height, pixels_per_square
         uniform ivec2 u_sections; // [8, 4]
         uniform sampler2D u_board;
@@ -323,7 +321,7 @@
         }
     `
 
-    const grid_vertex_source = `#version 300 es
+const grid_vertex_source = `#version 300 es
         in vec2 a_pos;
         in vec2 a_tex_coords;
         out vec2 tex_coords;
@@ -334,7 +332,7 @@
         }
     `
 
-    const grid_fragment_source = `#version 300 es
+const grid_fragment_source = `#version 300 es
         precision mediump float;
         out vec4 fragColor;
 
@@ -363,64 +361,64 @@
         }
     `
 
-    const grid_program = create_and_link_shaders(gl, grid_vertex_source, grid_fragment_source);
+const grid_program = create_and_link_shaders(gl, grid_vertex_source, grid_fragment_source);
+gl.useProgram(grid_program);
+const grid_position_attribute_location = gl.getAttribLocation(grid_program, "a_pos");
+const grid_tex_coords_attribute_location = gl.getAttribLocation(grid_program, "a_tex_coords");
+const grid_resolution_location = gl.getUniformLocation(grid_program, "u_grid_resolution");
+const grid_sections_location = gl.getUniformLocation(grid_program, "u_sections");
+
+gl.uniform3iv(grid_resolution_location, [gol_width, gol_height, pixels_per_square]);
+gl.uniform2iv(grid_sections_location, [x_sections, y_sections]);
+
+const grid_vao = gl.createVertexArray();
+gl.bindVertexArray(grid_vao);
+
+const buffer_size = grid_positions_array.byteLength + grid_tex_coords_array.byteLength;
+const grid_vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, grid_vbo);
+gl.bufferData(gl.ARRAY_BUFFER, buffer_size, gl.STATIC_DRAW);
+gl.bufferSubData(gl.ARRAY_BUFFER, 0, grid_positions_array);
+gl.bufferSubData(gl.ARRAY_BUFFER, grid_positions_array.byteLength, grid_tex_coords_array);
+
+const grid_ebo = gl.createBuffer();
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grid_ebo);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, grid_indices, gl.STATIC_DRAW);
+
+gl.enableVertexAttribArray(grid_position_attribute_location);
+gl.vertexAttribPointer(grid_position_attribute_location,
+    2, gl.FLOAT, false, 2 * bytes_per_float, 0
+);
+
+gl.enableVertexAttribArray(grid_tex_coords_attribute_location);
+gl.vertexAttribPointer(grid_tex_coords_attribute_location,
+    2, gl.FLOAT, false, 2 * bytes_per_float, grid_positions_array.byteLength
+);
+
+
+function draw_grid() {
+    gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.useProgram(grid_program);
-    const grid_position_attribute_location = gl.getAttribLocation(grid_program, "a_pos");
-    const grid_tex_coords_attribute_location = gl.getAttribLocation(grid_program, "a_tex_coords");
-    const grid_resolution_location = gl.getUniformLocation(grid_program, "u_grid_resolution");
-    const grid_sections_location = gl.getUniformLocation(grid_program, "u_sections");
-
-    gl.uniform3iv(grid_resolution_location, [gol_width, gol_height, pixels_per_square]);
-    gl.uniform2iv(grid_sections_location, [x_sections, y_sections]);
-
-    const grid_vao = gl.createVertexArray();
     gl.bindVertexArray(grid_vao);
+    gl.drawElements(gl.TRIANGLES, 6 * num_cells, gl.UNSIGNED_INT, 0);
+}
 
-    const buffer_size = grid_positions_array.byteLength + grid_tex_coords_array.byteLength;
-    const grid_vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, grid_vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, buffer_size, gl.STATIC_DRAW);
-    gl.bufferSubData(gl.ARRAY_BUFFER, 0, grid_positions_array);
-    gl.bufferSubData(gl.ARRAY_BUFFER, grid_positions_array.byteLength, grid_tex_coords_array);
+/////////////////////////////////
+// game of life simulation
+/////////////////////////////////
 
-    const grid_ebo = gl.createBuffer();
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, grid_ebo);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, grid_indices, gl.STATIC_DRAW);
-
-    gl.enableVertexAttribArray(grid_position_attribute_location);
-    gl.vertexAttribPointer(grid_position_attribute_location,
-        2, gl.FLOAT, false, 2 * bytes_per_float, 0
-    );
-
-    gl.enableVertexAttribArray(grid_tex_coords_attribute_location);
-    gl.vertexAttribPointer(grid_tex_coords_attribute_location,
-        2, gl.FLOAT, false, 2 * bytes_per_float, grid_positions_array.byteLength 
-    );
-
-
-    function draw_grid(){
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.useProgram(grid_program);
-        gl.bindVertexArray(grid_vao);
-        gl.drawElements(gl.TRIANGLES, 6 * num_cells, gl.UNSIGNED_INT, 0);
+let gol_coords = new Float32Array(4 * cells_per_section);
+for (let i = 0, y = 0; y < y_cells_per_section; y++) {
+    for (let x = 0; x < x_cells_per_section; x++, i += 4) {
+        gol_coords[i + 0] = -1.0 + x * 2 * tex_dx + tex_dx;
+        gol_coords[i + 1] = -1.0 + y * 2 * tex_dy + tex_dy;
+        gol_coords[i + 2] = x * tex_dx + 0.5 * tex_dx;
+        gol_coords[i + 3] = y * tex_dy + 0.5 * tex_dy;
     }
+}
 
-    /////////////////////////////////
-    // game of life simulation
-    /////////////////////////////////
-
-    let gol_coords = new Float32Array(4 * cells_per_section);
-    for(let i = 0, y = 0; y < y_cells_per_section; y++){
-        for(let x = 0; x < x_cells_per_section; x++, i += 4){
-            gol_coords[i + 0] = -1.0 + x * 2 * tex_dx + tex_dx;
-            gol_coords[i + 1] = -1.0 + y * 2 * tex_dy + tex_dy;
-            gol_coords[i + 2] = x * tex_dx + 0.5 * tex_dx;
-            gol_coords[i + 3] = y * tex_dy + 0.5 * tex_dy;
-        }
-    }
-
-    const gol_vertex_source = `#version 300 es
+const gol_vertex_source = `#version 300 es
         in vec4 coords;
         out vec2 tex_coords;
 
@@ -431,14 +429,14 @@
         }
     `
 
-    // the gol step needs to iterate through each cell, which 
-    // is handled by the texture coords per shader run
-    // each shader run needs to update the 32 vertices in each bit 
-    // iterate through the 32 cells this tex_coords is responsible for,
-    // check each of their 8 neighbors, and accumulate in sum
-    // the extraction functions will handle the offsets and properly indexing
-    // the right texture coordinates 
-    const gol_fragment_source = `#version 300 es
+// the gol step needs to iterate through each cell, which 
+// is handled by the texture coords per shader run
+// each shader run needs to update the 32 vertices in each bit 
+// iterate through the 32 cells this tex_coords is responsible for,
+// check each of their 8 neighbors, and accumulate in sum
+// the extraction functions will handle the offsets and properly indexing
+// the right texture coordinates 
+const gol_fragment_source = `#version 300 es
         precision mediump float;
         uniform int u_kernel[9];
         out vec4 fragColor;
@@ -476,74 +474,68 @@
         }
     `
 
-    const gol_program = create_and_link_shaders(gl, gol_vertex_source, gol_fragment_source);
+const gol_program = create_and_link_shaders(gl, gol_vertex_source, gol_fragment_source);
+gl.useProgram(gol_program);
+const gol_coords_location = gl.getAttribLocation(gol_program, "coords");
+const gol_kernel_location = gl.getUniformLocation(gol_program, "u_kernel");
+const gol_grid_resolution_location = gl.getUniformLocation(gol_program, "u_grid_resolution");
+const gol_sections_location = gl.getUniformLocation(gol_program, "u_sections");
+
+gl.uniform3iv(gol_grid_resolution_location, [texture_width, texture_height, 1]);
+gl.uniform2iv(gol_sections_location, [texture_width, texture_height]);
+
+const gol_vao = gl.createVertexArray();
+gl.bindVertexArray(gol_vao);
+
+// gol_vbo holds gol_coords, which are (pos x, pox y, tex x, tex y)
+const gol_vbo = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, gol_vbo);
+gl.bufferData(gl.ARRAY_BUFFER, gol_coords, gl.STATIC_DRAW);
+
+gl.enableVertexAttribArray(gol_coords_location);
+gl.vertexAttribPointer(gol_coords_location,
+    4, gl.FLOAT, false, 0, 0
+);
+
+function gol_step(kernel) {
     gl.useProgram(gol_program);
-    const gol_coords_location = gl.getAttribLocation(gol_program, "coords");
-    const gol_kernel_location = gl.getUniformLocation(gol_program, "u_kernel");
-    const gol_grid_resolution_location = gl.getUniformLocation(gol_program, "u_grid_resolution");
-    const gol_sections_location = gl.getUniformLocation(gol_program, "u_sections");
-
-    gl.uniform3iv(gol_grid_resolution_location, [texture_width, texture_height, 1]);
-    gl.uniform2iv(gol_sections_location, [texture_width, texture_height]);
-
-    const gol_vao = gl.createVertexArray();
+    gl.viewport(0, 0, 1, 1);
+    gl.viewport(0, 0, texture_width, texture_height);
     gl.bindVertexArray(gol_vao);
+    gl.uniform1iv(gol_kernel_location, kernel);
+    gl.drawArrays(gl.POINTS, 0, cells_per_section);
+}
 
-    // gol_vbo holds gol_coords, which are (pos x, pox y, tex x, tex y)
-    const gol_vbo = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, gol_vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, gol_coords, gl.STATIC_DRAW);
+/////////////////////////////////
+// Main render loop
+/////////////////////////////////
 
-    gl.enableVertexAttribArray(gol_coords_location);
-    gl.vertexAttribPointer(gol_coords_location,
-        4, gl.FLOAT, false, 0, 0
-    );
+draw_grid();
 
-    function gol_step(kernel){
-        gl.useProgram(gol_program);
-        gl.viewport(0, 0, 1, 1);
-        gl.viewport(0, 0, texture_width, texture_height);
-        gl.bindVertexArray(gol_vao);
-        gl.uniform1iv(gol_kernel_location, kernel);
-        gl.drawArrays(gl.POINTS, 0, cells_per_section);
-    }
+let prev_time = Date.now();
+const interval = 1000 / 10; // 1000ms/ 10 = 1/10th of a second
+let elapsed_time = 0;
+function render() {
+    const current_time = Date.now();
+    const dt = current_time - prev_time;
+    prev_time = current_time;
+    elapsed_time += dt;
 
-    /////////////////////////////////
-    // Main render loop
-    /////////////////////////////////
+    if (elapsed_time > interval) {
+        elapsed_time -= interval;
 
-    draw_grid();
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[generation % 2]);
+        gol_step(gol_kernel);
 
-    let prev_time = Date.now();
-    const interval = 1000/10; // 1000ms/ 10 = 1/10th of a second
-    let elapsed_time = 0;
-    function render(){
-        const current_time = Date.now();
-        const dt = current_time - prev_time;
-        prev_time = current_time;
-        elapsed_time += dt;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindTexture(gl.TEXTURE_2D, textures[generation % 2]);
 
-        if(elapsed_time > interval){
-            elapsed_time -= interval;
-
-            gl.clear(gl.COLOR_BUFFER_BIT);
-            gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[generation % 2]);
-            gol_step(gol_kernel);
-
-            if(generation < 3){
-                gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixel_data);
-                console.log(pixel_data);
-            }
-
-            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-            gl.bindTexture(gl.TEXTURE_2D, textures[generation % 2]);
-
-            draw_grid();
-            generation++;
-        }
-
-        requestAnimationFrame(render);
+        draw_grid();
+        generation++;
     }
 
     requestAnimationFrame(render);
-})();
+}
+
+requestAnimationFrame(render);

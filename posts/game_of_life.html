@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="/style.css">
     <script defer src="/navbar.js"></script>
     <script type="text/javascript" src="/scripts/webgl_utils.js"></script>
+    <script type = "module" src ="/scripts/game_of_life.js"></script>
+    <script type="module" src ="/scripts/improved_webgl_gol.js"></script>
+
     <style>
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
@@ -19,6 +22,7 @@
             -moz-appearance: textfield; /* For Firefox */
         }
     </style>
+
 </head>
 
 <body>
@@ -46,7 +50,6 @@
                 from/to dead.
             </p>
 
-        <!--
             <canvas id="gameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
 
             <button id="gameOfLifePause"> Run </button>
@@ -61,10 +64,6 @@
             <input id="gameOfLifeRandomProb" type="number" placeholder="Random Probability"
                 min="0" max="1" style="width: 30px;"
             >
-
-            <div>
-                <script src ="/scripts/game_of_life.js"></script>
-            </div>
 
             <p>
                 The program works by rendering back and forth between two
@@ -91,16 +90,11 @@
                 to a branch free program on the GPU.
             </p>
         </div>
-        -->
 
         <h3> WebGL, with no bits wasted </h3>
 
         <div class="game-of-life">
             <canvas id="improvedGameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
-
-            <div>
-                <script src ="/scripts/improved_webgl_gol.js"></script>
-            </div>
 
             <p>
                 Like above, this is another WebGL implementation of GoL, but
