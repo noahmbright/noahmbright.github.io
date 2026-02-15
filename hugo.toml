@@ -1,0 +1,7 @@
+baseURL = 'https://noahmbright.github.io/'
+languageCode = 'en-us'
+title = 'Noah Bright'
+
+[caches]
+  [caches.images]
+    dir = ':cacheDir/images'

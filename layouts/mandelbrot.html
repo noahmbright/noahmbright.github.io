@@ -1,0 +1,53 @@
+{{ define "title" }}The Mandelbrot Set | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+{{- $vanilla := `
+<div class="canvases-container">
+    <div class="canvases-item">
+        <canvas id="functionalCanvas" width="256" height="256" style="border:1px solid #000000;"></canvas>
+        <p> Functional: <span id="functional-fps">0.00</span> FPS</p>
+    </div>
+    <div class="canvases-item">
+        <canvas id="imperativeCanvas" width="256" height="256" style="border:1px solid #000000;"></canvas>
+        <p> Imperative: <span id="imperative-fps">0.00</span> FPS</p>
+    </div>
+</div>
+` -}}
+
+{{- $webgl := `
+<div class="webgl-mandelbrot">
+    <canvas id="webgl-mandelcanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+    <p><span id="mandelbrot-fps">0.00</span> FPS</p>
+    <p>Delta real: <span id="mandelbrot-zoom">2.5</span></p>
+</div>
+` -}}
+
+{{- $julia := `
+<div class="julia-sets">
+    <div class="canvases-container">
+        <div class="canvases-item">
+            <canvas id="julia-canvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+        </div>
+        <div class="canvases-item" style="position: relative; height: 256px;">
+            <canvas id="pickerBackgroundCanvas" width="256" height="256"
+                style="border:1px solid #000000; background-color: #af80af;
+                position: absolute; top: 0; left: 0;"></canvas>
+            <canvas id="julia-constant-picker-canvas" width="256" height="256"
+                style="border:1px solid #000000;
+                position: absolute; top: 0; left: 0;"></canvas>
+        </div>
+        <div style="position:relative; top: 260px; left: 10px;">
+            Real: <span id="julia-constant-real">0.00</span>,
+            Imaginary: <span id="julia-constant-imag">0.00</span>
+        </div>
+    </div>
+</div>
+` -}}
+
+{{- $content := .Content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[VANILLA_CANVASES\]\]\]\s*</p>` $vanilla $content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[WEBGL_CANVAS\]\]\]\s*</p>` $webgl $content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[JULIA_CANVASES\]\]\]\s*</p>` $julia $content -}}
+{{- $content | safeHTML -}}
+<script src="{{ "scripts/webgl_utils.js" | relURL }}"></script>
+<script src="{{ "scripts/mandelbrot.js" | relURL }}"></script>
+{{ end }}

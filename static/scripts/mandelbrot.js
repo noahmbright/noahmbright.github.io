@@ -97,9 +97,11 @@ const max_iterations_vanilla = 50;
 // threading
 const N_THREADS = navigator.hardwareConcurrency || 4;
 const workers = [];
-for (let k = 0; k < N_THREADS; k++) {
-    workers.push(new Worker('mandelbrot_worker.js'));
-}
+try {
+    for (let k = 0; k < N_THREADS; k++) {
+        workers.push(new Worker('/scripts/mandelbrot_worker.js'));
+    }
+} catch (e) { /* worker not available */ }
 
 // color lookup table
 const vanilla_palette = new Uint8Array(3 * (max_iterations_vanilla + 1));

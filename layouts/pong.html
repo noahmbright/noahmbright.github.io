@@ -1,0 +1,16 @@
+{{ define "title" }}Pong | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+    <h2> Pong </h2>
+
+    <div class="pong-clone">
+        {{ .Content }}
+
+        <canvas id="pongCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+
+        <button id="pongPlayerScore"> Player: 0 </button>
+        <button id="pongComputerScore"> Computer: 0 </button>
+
+        <script src="{{ "scripts/webgl_utils.js" | relURL }}"></script>
+        <script src="{{ "scripts/pong.js" | relURL }}"></script>
+    </div>
+{{ end }}

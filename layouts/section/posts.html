@@ -1,0 +1,12 @@
+{{ define "title" }}Posts | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+    <h2> Posts </h2>
+    <ul>
+      {{ range .Pages }}
+      <li>
+        <a href="{{ .Permalink }}">{{ .Title }}</a>
+        {{ with .Param "description" }}<p>{{ . }}</p>{{ end }}
+      </li>
+      {{ end }}
+    </ul>
+{{ end }}

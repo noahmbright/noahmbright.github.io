@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ block "title" . }}{{ .Site.Title }}{{ end }}</title>
+    <link rel="stylesheet" href="{{ "style.css" | relURL }}">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <ul>
+                <li><a href="{{ "/" | relURL }}"> Home </a></li>
+                <li><a href="{{ "/about/" | relURL }}"> About </a></li>
+                <li><a href="{{ "/posts/" | relURL }}"> Posts </a></li>
+            </ul>
+        </nav>
+    </header>
+    <section class="main-content">
+        {{ block "main" . }}{{ end }}
+    </section>
+</body>
+</html>

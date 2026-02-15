@@ -1,0 +1,41 @@
+{{ define "title" }}The Game of Life | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+<style>
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+    }
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+</style>
+{{- $basicDemo := `
+<div class="game-of-life">
+    <canvas id="gameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+
+    <button id="gameOfLifePause"> Run </button>
+    <button id="gameOfLifeReset"> Reset </button>
+
+    <button id="gameOfLifeRandomize"> Randomize </button>
+    <input id="gameOfLifeRandomProb" type="number" placeholder="Random Probability"
+        min="0" max="1" style="width: 30px;"
+    >
+</div>
+` -}}
+
+{{- $improvedDemo := `
+<div class="game-of-life">
+    <canvas id="improvedGameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+</div>
+` -}}
+
+{{- $content := .Content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[GAME_OF_LIFE_DEMO\]\]\]\s*</p>` $basicDemo $content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[IMPROVED_GAME_OF_LIFE_DEMO\]\]\]\s*</p>` $improvedDemo $content -}}
+{{- $content | safeHTML -}}
+
+<script src="{{ "scripts/webgl_utils.js" | relURL }}"></script>
+<script type="module" src="{{ "scripts/game_of_life.js" | relURL }}"></script>
+<script type="module" src="{{ "scripts/improved_webgl_gol.js" | relURL }}"></script>
+{{ end }}

@@ -184,8 +184,6 @@ function rotation_matrix3d(angle) {
 }
 
 function translation_matrix3d(dx, dy) {
-    const c = Math.cos(angle);
-    const s = Math.sin(angle);
     return [
         1, 0, 0,
         0, 1, 0,
@@ -478,11 +476,11 @@ function generate_sphere_vertices(radius, num_azimuthal_slices, num_zenith_slice
 
 // north and south poles are where i == 0 and i == num_zenith_slices - 1
 // k1 is first index in top zenith slice
-// let the verices be k1, k1 + 1, and k2, the first vertex in the next zenith slice 
+// let the verices be k1, k1 + 1, and k2, the first vertex in the next zenith slice
 // the next triangle in the quad would be k1 + 1, k2 + 1, k2
 // the ones where i == 0 would go k1, k2 + 1, k2
 // the ones where i == num_zenith_slices - 1 go k1, k1 +1, k2
-// these triangles would be clockwise 
+// these triangles would be clockwise
 function generate_sphere_indices(num_azimuthal_slices, num_zenith_slices) {
     let indices = [];
 
