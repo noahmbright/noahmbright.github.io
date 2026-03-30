@@ -30,12 +30,22 @@
 </div>
 ` -}}
 
+{{- $webgpuDemo := `
+<div class="game-of-life">
+    <canvas id="webgpuGameOfLifeCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+</div>
+` -}}
+
+
 {{- $content := .Content -}}
 {{- $content = replaceRE `(?s)<p>\s*\[\[\[GAME_OF_LIFE_DEMO\]\]\]\s*</p>` $basicDemo $content -}}
 {{- $content = replaceRE `(?s)<p>\s*\[\[\[IMPROVED_GAME_OF_LIFE_DEMO\]\]\]\s*</p>` $improvedDemo $content -}}
+{{- $content = replaceRE `(?s)<p>\s*\[\[\[WEBGPU_GAME_OF_LIFE_DEMO\]\]\]\s*</p>` $webgpuDemo $content -}}
 {{- $content | safeHTML -}}
 
 <script src="{{ "scripts/webgl_utils.js" | relURL }}"></script>
-<script type="module" src="{{ "scripts/game_of_life.js" | relURL }}"></script>
-<script type="module" src="{{ "scripts/improved_webgl_gol.js" | relURL }}"></script>
+<script src="{{ "scripts/webgpu_utils.js" | relURL }}"></script>
+<script type="module" src="{{ "scripts/game_of_life/game_of_life.js" | relURL }}"></script>
+<script type="module" src="{{ "scripts/game_of_life/improved_webgl_gol.js" | relURL }}"></script>
+<script type="module" src="{{ "scripts/game_of_life/webgpu_gol.js" | relURL }}"></script>
 {{ end }}

@@ -160,21 +160,21 @@ for (let y = -1.0; y < 1.0; y += dy) {
 }
 
 const lines_vertex_source = `#version 300 es
-        in vec2 a_pos;
+    in vec2 a_pos;
 
-        void main(){
-            gl_Position = vec4(a_pos, 0.0, 1.0);
-        }
-    `
+    void main(){
+        gl_Position = vec4(a_pos, 0.0, 1.0);
+    }
+`
 
 const lines_fragment_source = `#version 300 es
-        precision mediump float;
-        out vec4 fragColor;
+    precision mediump float;
+    out vec4 fragColor;
 
-        void main(){
-            fragColor = vec4(0.3, 0.4, 0.0, 1.0);
-        }
-    `
+    void main(){
+        fragColor = vec4(0.3, 0.4, 0.0, 1.0);
+    }
+`
 
 const lines_program = create_and_link_shaders(gl, lines_vertex_source, lines_fragment_source);
 gl.useProgram(lines_program);
@@ -224,7 +224,7 @@ for (let y_ind = 0; y_ind < gol_height; y_ind++) {
         grid_tex_coords_array[i] = tex_x;
         grid_tex_coords_array[i + 1] = tex_y;
 
-        // top le;
+        // top left
         grid_positions_array[i + 2] = screen_x;
         grid_positions_array[i + 3] = screen_y + dy;
         grid_tex_coords_array[i + 2] = tex_x;
@@ -358,6 +358,7 @@ const grid_fragment_source = `#version 300 es
             int this_bit = extract_bit_from_texture(idxs, ivec2(0));
             vec4 cell_color = (this_bit == 1) ? alive_color : dead_color;
             fragColor = cell_color + dye_color;
+            fragColor.rg += 0.2 * tex_coords;
         }
     `
 
@@ -419,15 +420,15 @@ for (let i = 0, y = 0; y < y_cells_per_section; y++) {
 }
 
 const gol_vertex_source = `#version 300 es
-        in vec4 coords;
-        out vec2 tex_coords;
+    in vec4 coords;
+    out vec2 tex_coords;
 
-        void main(){
-            gl_Position = vec4(coords.xy, 0.0, 1.0);
-            gl_PointSize = 1.0;
-            tex_coords = coords.zw;
-        }
-    `
+    void main(){
+        gl_Position = vec4(coords.xy, 0.0, 1.0);
+        gl_PointSize = 1.0;
+        tex_coords = coords.zw;
+    }
+`
 
 // the gol step needs to iterate through each cell, which 
 // is handled by the texture coords per shader run
@@ -513,7 +514,7 @@ function gol_step(kernel) {
 draw_grid();
 
 let prev_time = Date.now();
-const interval = 1000 / 10; // 1000ms/ 10 = 1/10th of a second
+const interval = 1000 / 10; // 1000ms / 10 = 1/10th of a second
 let elapsed_time = 0;
 function render() {
     const current_time = Date.now();
@@ -522,7 +523,7 @@ function render() {
     elapsed_time += dt;
 
     if (elapsed_time > interval) {
-        elapsed_time -= interval;
+        elapsed_time = elapsed_time % interval;
 
         gl.clear(gl.COLOR_BUFFER_BIT);
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffers[generation % 2]);
